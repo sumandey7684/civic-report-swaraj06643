@@ -2,7 +2,10 @@ import React, { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 
 const AdminDashboard: React.FC = () => {
-  const [profile, setProfile] = useState<{ name?: string; email?: string } | null>(null);
+  const [profile, setProfile] = useState<{
+    name?: string;
+    email?: string;
+  } | null>(null);
 
   useEffect(() => {
     const fetchProfile = async () => {
@@ -34,12 +37,14 @@ const AdminDashboard: React.FC = () => {
       {profile ? (
         <div>
           <p className="text-xl">
-            Welcome, <span className="font-semibold">{profile.name || profile.email}</span>
+            <span className="font-semibold">
+              {profile.name || profile.email}
+            </span>
           </p>
           {/* Rest of admin dashboard content */}
         </div>
       ) : (
-        <p>Loading profile...</p>
+        <p>Access is denied.First verify your Admin account.</p>
       )}
     </div>
   );
