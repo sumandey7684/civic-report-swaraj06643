@@ -1,3 +1,5 @@
+import React, { useRef, useEffect, useState } from "react";
+import { VideoBackground } from "../VideoBackground";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { FloatingActionButton } from "@/components/ui/floating-action-button";
@@ -11,9 +13,8 @@ import {
   BarChart3,
   Sparkles,
 } from "lucide-react";
-import { motion, useAnimation } from "framer-motion";
+import { motion } from "framer-motion";
 import { useNavigate } from "react-router-dom";
-import { useRef, useEffect, useState } from "react";
 
 export const Hero = () => {
   const navigate = useNavigate();
@@ -22,16 +23,10 @@ export const Hero = () => {
   const [currentIndex, setCurrentIndex] = useState(0);
   const fullText = "Building Communities";
 
-  const handleReportIssue = () => {
-    fileInputRef.current?.click();
-  };
-
   const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const files = event.target.files;
+    const files: FileList | null = event.currentTarget.files;
     if (files && files.length > 0) {
-      // Handle file selection - you can add more logic here
       console.log("Selected files:", files);
-      // For now, just show an alert
       alert(`Selected ${files.length} file(s) for issue reporting!`);
     }
   };
@@ -45,8 +40,12 @@ export const Hero = () => {
       const timeout = setTimeout(() => {
         setDisplayText((prev) => prev + fullText[currentIndex]);
         setCurrentIndex((prev) => prev + 1);
+<<<<<<< Updated upstream
       }, 100); // Typing speed - 100ms per character
 
+=======
+      }, 100);
+>>>>>>> Stashed changes
       return () => clearTimeout(timeout);
     }
   }, [currentIndex, fullText]);
@@ -57,11 +56,41 @@ export const Hero = () => {
         className="relative min-h-screen flex flex-col justify-center overflow-hidden bg-white text-black dark:bg-gradient-to-br dark:from-[#0a0a23] dark:to-[#1e3a8a] dark:text-white"
         aria-label="Hero section"
       >
+<<<<<<< Updated upstream
         {/* Video Background */}
         <VideoBackground src="/3058058-hd_1280_720_30fps.mp4" />
+=======
+        {/* Video Background - must be first and lowest z-index */}
+        <div
+          className="absolute inset-0 w-full h-full pointer-events-none"
+          style={{ zIndex: 0 }}
+        >
+          <VideoBackground src="/3058058-hd_1280_720_30fps.mp4" />
+        </div>
+        {/* Animated Background */}
+        <div
+          className="absolute inset-0 gradient-hero opacity-10"
+          style={{ zIndex: 1 }}
+        />
+        <div className="absolute inset-0" style={{ zIndex: 2 }}>
+          <motion.div
+            className="absolute inset-0 bg-gradient-to-r from-primary/20 via-transparent to-secondary/20"
+            animate={{
+              backgroundPosition: ["0% 50%", "100% 50%", "0% 50%"],
+            }}
+            transition={{
+              duration: 8,
+              repeat: Infinity,
+              ease: "linear",
+            }}
+          />
+        </div>
+
+>>>>>>> Stashed changes
         {/* Floating Elements */}
         <motion.div
           className="absolute top-20 left-10 w-20 h-20 rounded-full bg-primary/10 blur-xl"
+          style={{ zIndex: 3 }}
           animate={{
             y: [0, -20, 0],
             scale: [1, 1.2, 1],
@@ -71,7 +100,10 @@ export const Hero = () => {
           aria-hidden="true"
         />
 
-        <div className="container mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
+        <div
+          className="container mx-auto px-4 sm:px-6 lg:px-8 relative"
+          style={{ zIndex: 10 }}
+        >
           <div className="grid lg:grid-cols-2 gap-16 items-center">
             {/* Content Section - Left */}
             <motion.div
@@ -93,7 +125,6 @@ export const Hero = () => {
                   SIH 2025 Government Innovation
                 </Badge>
               </motion.div>
-
               <motion.h1
                 className="text-3xl sm:text-5xl lg:text-6xl xl:text-7xl font-bold text-foreground mb-8 leading-snug"
                 initial={{ opacity: 0, y: 40 }}
