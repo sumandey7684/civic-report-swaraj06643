@@ -1,0 +1,34 @@
+.video-bg-container {
+  position: absolute;
+  inset: 0;
+  width: 100vw;
+  height: 100vh;
+  overflow: hidden;
+  z-index: 0;
+  pointer-events: none;
+}
+
+.video-bg {
+  width: 100vw;
+  height: 100vh;
+  object-fit: cover;
+  position: absolute;
+  left: 0;
+  top: 0;
+}
+
+@media (max-width: 900px) {
+  .video-bg, .video-bg-container {
+    height: 60vh;
+    min-height: 60vh;
+    max-height: 60vh;
+  }
+}
+
+@media (max-width: 600px) {
+  .video-bg, .video-bg-container {
+    height: 40vh;
+    min-height: 40vh;
+    max-height: 40vh;
+  }
+}
