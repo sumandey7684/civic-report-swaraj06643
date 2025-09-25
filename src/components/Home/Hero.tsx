@@ -1,9 +1,8 @@
 import React, { useRef, useEffect, useState } from "react";
-import { VideoBackground } from "../VideoBackground";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { FloatingActionButton } from "@/components/ui/floating-action-button";
-import VideoBackground from "../VideoBackground";
+import VideoBackground from "../VideoBackground/VideoBackground";
 import {
   Camera,
   MapPin,
@@ -40,12 +39,8 @@ export const Hero = () => {
       const timeout = setTimeout(() => {
         setDisplayText((prev) => prev + fullText[currentIndex]);
         setCurrentIndex((prev) => prev + 1);
-<<<<<<< Updated upstream
       }, 100); // Typing speed - 100ms per character
 
-=======
-      }, 100);
->>>>>>> Stashed changes
       return () => clearTimeout(timeout);
     }
   }, [currentIndex, fullText]);
@@ -53,40 +48,12 @@ export const Hero = () => {
   return (
     <>
       <section
-        className="relative min-h-screen flex flex-col justify-center overflow-hidden bg-white text-black dark:bg-gradient-to-br dark:from-[#0a0a23] dark:to-[#1e3a8a] dark:text-white"
+        className="relative min-h-screen flex flex-col justify-center overflow-hidden"
         aria-label="Hero section"
       >
-<<<<<<< Updated upstream
-        {/* Video Background */}
+        {/* Video Background - only for Hero */}
         <VideoBackground src="/3058058-hd_1280_720_30fps.mp4" />
-=======
-        {/* Video Background - must be first and lowest z-index */}
-        <div
-          className="absolute inset-0 w-full h-full pointer-events-none"
-          style={{ zIndex: 0 }}
-        >
-          <VideoBackground src="/3058058-hd_1280_720_30fps.mp4" />
-        </div>
-        {/* Animated Background */}
-        <div
-          className="absolute inset-0 gradient-hero opacity-10"
-          style={{ zIndex: 1 }}
-        />
-        <div className="absolute inset-0" style={{ zIndex: 2 }}>
-          <motion.div
-            className="absolute inset-0 bg-gradient-to-r from-primary/20 via-transparent to-secondary/20"
-            animate={{
-              backgroundPosition: ["0% 50%", "100% 50%", "0% 50%"],
-            }}
-            transition={{
-              duration: 8,
-              repeat: Infinity,
-              ease: "linear",
-            }}
-          />
-        </div>
 
->>>>>>> Stashed changes
         {/* Floating Elements */}
         <motion.div
           className="absolute top-20 left-10 w-20 h-20 rounded-full bg-primary/10 blur-xl"
