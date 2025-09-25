@@ -1,7 +1,6 @@
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { FloatingActionButton } from "@/components/ui/floating-action-button";
-import VideoBackground from "../VideoBackground";
 import {
   Camera,
   MapPin,
@@ -43,8 +42,8 @@ export const Hero = () => {
   useEffect(() => {
     if (currentIndex < fullText.length) {
       const timeout = setTimeout(() => {
-        setDisplayText((prev) => prev + fullText[currentIndex]);
-        setCurrentIndex((prev) => prev + 1);
+        setDisplayText(prev => prev + fullText[currentIndex]);
+        setCurrentIndex(prev => prev + 1);
       }, 100); // Typing speed - 100ms per character
 
       return () => clearTimeout(timeout);
@@ -57,8 +56,22 @@ export const Hero = () => {
         className="relative min-h-screen flex flex-col justify-center overflow-hidden bg-white text-black dark:bg-gradient-to-br dark:from-[#0a0a23] dark:to-[#1e3a8a] dark:text-white"
         aria-label="Hero section"
       >
-        {/* Video Background */}
-        <VideoBackground src="/3058058-hd_1280_720_30fps.mp4" />
+        {/* Animated Background */}
+        <div className="absolute inset-0 gradient-hero opacity-10" />
+        <div className="absolute inset-0">
+          <motion.div
+            className="absolute inset-0 bg-gradient-to-r from-primary/20 via-transparent to-secondary/20"
+            animate={{
+              backgroundPosition: ["0% 50%", "100% 50%", "0% 50%"],
+            }}
+            transition={{
+              duration: 8,
+              repeat: Infinity,
+              ease: "linear",
+            }}
+          />
+        </div>
+
         {/* Floating Elements */}
         <motion.div
           className="absolute top-20 left-10 w-20 h-20 rounded-full bg-primary/10 blur-xl"
@@ -134,10 +147,7 @@ export const Hero = () => {
               >
                 <div className="text-center">
                   <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-6">
-                    <Users
-                      className="w-8 h-8 text-blue-600"
-                      aria-hidden="true"
-                    />
+                    <Users className="w-8 h-8 text-blue-600" aria-hidden="true" />
                   </div>
                   <h3 className="text-2xl font-bold text-foreground mb-4">
                     Citizen Portal
@@ -145,17 +155,11 @@ export const Hero = () => {
 
                   <div className="space-y-2 text-sm text-muted-foreground mb-8 text-left">
                     <div className="flex items-center">
-                      <CheckCircle
-                        className="w-4 h-4 text-green-500 mr-2"
-                        aria-hidden="true"
-                      />
+                      <CheckCircle className="w-4 h-4 text-green-500 mr-2" aria-hidden="true" />
                       Report civic issues with photos and location
                     </div>
                     <div className="flex items-center">
-                      <CheckCircle
-                        className="w-4 h-4 text-green-500 mr-2"
-                        aria-hidden="true"
-                      />
+                      <CheckCircle className="w-4 h-4 text-green-500 mr-2" aria-hidden="true" />
                       Track status of your reports
                     </div>
                   </div>
@@ -179,27 +183,18 @@ export const Hero = () => {
               >
                 <div className="text-center">
                   <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-6">
-                    <Shield
-                      className="w-8 h-8 text-green-600"
-                      aria-hidden="true"
-                    />
+                    <Shield className="w-8 h-8 text-green-600" aria-hidden="true" />
                   </div>
                   <h3 className="text-2xl font-bold text-foreground mb-4">
                     Admin Dashboard
                   </h3>
                   <div className="space-y-2 text-sm text-muted-foreground mb-8 text-left">
                     <div className="flex items-center">
-                      <CheckCircle
-                        className="w-4 h-4 text-green-500 mr-2"
-                        aria-hidden="true"
-                      />
+                      <CheckCircle className="w-4 h-4 text-green-500 mr-2" aria-hidden="true" />
                       View and manage all reported issues
                     </div>
                     <div className="flex items-center">
-                      <CheckCircle
-                        className="w-4 h-4 text-green-500 mr-2"
-                        aria-hidden="true"
-                      />
+                      <CheckCircle className="w-4 h-4 text-green-500 mr-2" aria-hidden="true" />
                       Track resolution progress and analytics
                     </div>
                   </div>
