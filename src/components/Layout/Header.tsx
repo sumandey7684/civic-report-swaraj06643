@@ -71,38 +71,63 @@ export const Header = () => {
   const recognition = SpeechRecognition ? new SpeechRecognition() : null;
 
   const startListening = () => {
-    if (!recognition) {
-      alert("Speech recognition is not supported in this browser.");
+    const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+    
+    if (!SpeechRecognition) {
+      alert("Speech recognition is not supported in this browser. Please use a modern browser like Google Chrome.");
       return;
     }
-    recognition.lang = "en-US";
-    recognition.interimResults = false;
-    recognition.maxAlternatives = 1;
 
-    recognition.start();
-    setIsListening(true);
+    try {
+      const recognition = new SpeechRecognition();
+      recognition.lang = window.navigator.language || "en-US";
+      recognition.interimResults = false;
+      recognition.maxAlternatives = 1;
 
-    recognition.onresult = (event: any) => {
-      const transcript = event.results[0][0].transcript;
+      recognition.onstart = () => {
+        setIsListening(true);
+      };
+
+      recognition.onresult = (event: any) => {
+        const transcript = event.results[0][0].transcript;
+        setIsListening(false);
+        const answer = answerFromKnowledgeBase(transcript);
+        
+        // Use a more modern way to show results if possible, but keeping alert for consistency as requested
+        alert(`You said: "${transcript}"\n\nAnswer: ${answer}`);
+
+        // Speech synthesis to read answer aloud
+        if ("speechSynthesis" in window) {
+          const utterance = new SpeechSynthesisUtterance(answer);
+          window.speechSynthesis.speak(utterance);
+        }
+      };
+
+      recognition.onerror = (event: any) => {
+        setIsListening(false);
+        console.error("Speech Recognition Error:", event.error);
+        
+        let message = "Error occurred in speech recognition: " + event.error;
+        if (event.error === 'network') {
+          message = "Network error. The speech service is unreachable. Please check your internet connection and try again.";
+        } else if (event.error === 'not-allowed') {
+          message = "Microphone access denied. Please allow microphone permissions in your browser.";
+        } else if (event.error === 'no-speech') {
+          return; // Ignore silence
+        }
+        
+        alert(message);
+      };
+
+      recognition.onend = () => {
+        setIsListening(false);
+      };
+
+      recognition.start();
+    } catch (err) {
+      console.error("Error starting speech recognition:", err);
       setIsListening(false);
-      const answer = answerFromKnowledgeBase(transcript);
-      alert(`You said: "${transcript}"\n\nAnswer: ${answer}`);
-
-      // Speech synthesis to read answer aloud
-      if ("speechSynthesis" in window) {
-        const utterance = new SpeechSynthesisUtterance(answer);
-        window.speechSynthesis.speak(utterance);
-      }
-    };
-
-    recognition.onerror = (event: any) => {
-      setIsListening(false);
-      alert("Error occurred in speech recognition: " + event.error);
-    };
-
-    recognition.onend = () => {
-      setIsListening(false);
-    };
+    }
   };
 
   return (

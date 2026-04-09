@@ -74,34 +74,80 @@ const ReportIssue = () => {
 
   // Voice Assistant Handler
   const handleVoiceCall = () => {
-    if (!('webkitSpeechRecognition' in window)) {
-      toast({ title: "Voice Assistant Not Supported", description: "Your browser does not support speech recognition." });
+    const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+    
+    if (!SpeechRecognition) {
+      toast({ 
+        title: "Voice Assistant Not Supported", 
+        description: "Your browser does not support speech recognition. Please use Google Chrome for the best experience." 
+      });
       return;
     }
+
     if (!isListening) {
-      const recognition = new (window as any).webkitSpeechRecognition();
-      recognition.lang = "en-US";
-      recognition.continuous = true;
-      recognition.interimResults = true;
-      recognition.onresult = (event: any) => {
-        let transcript = "";
-        for (let i = event.resultIndex; i < event.results.length; ++i) {
-          transcript += event.results[i][0].transcript;
+      try {
+        // Cleanup any existing instance
+        if (recognitionRef.current) {
+          recognitionRef.current.abort();
         }
-        setVoiceTranscript(transcript);
-        setFormData((prev) => ({ ...prev, description: transcript }));
-      };
-      recognition.onerror = (event: any) => {
-        toast({ title: "Voice Error", description: event.error });
-      };
-      recognition.onend = () => {
+
+        const recognition = new SpeechRecognition();
+        recognition.lang = window.navigator.language || "en-US";
+        recognition.continuous = true;
+        recognition.interimResults = true;
+
+        recognition.onresult = (event: any) => {
+          let transcript = "";
+          for (let i = event.resultIndex; i < event.results.length; ++i) {
+            transcript += event.results[i][0].transcript;
+          }
+          setVoiceTranscript(transcript);
+          setFormData((prev) => ({ ...prev, description: transcript }));
+        };
+
+        recognition.onerror = (event: any) => {
+          console.error("Speech Recognition Error:", event.error);
+          
+          let errorMessage = event.error;
+          if (event.error === 'network') {
+            errorMessage = "Network error occurred. The speech recognition service is currently unavailable. Please check your connection or try again later.";
+          } else if (event.error === 'not-allowed') {
+            errorMessage = "Microphone access denied. Please enable microphone permissions in your browser settings.";
+          } else if (event.error === 'no-speech') {
+            // Silently handle no speech or inform user
+            return;
+          }
+
+          toast({ 
+            title: "Voice Error", 
+            description: errorMessage
+          });
+          
+          setIsListening(false);
+          recognitionRef.current = null;
+        };
+
+        recognition.onend = () => {
+          setIsListening(false);
+          recognitionRef.current = null;
+        };
+
+        recognition.start();
+        recognitionRef.current = recognition;
+        setIsListening(true);
+        
+        toast({
+          title: "Voice Assistant Active",
+          description: "Listening... You can describe the issue now.",
+        });
+      } catch (err) {
+        console.error("Failed to start speech recognition:", err);
         setIsListening(false);
-      };
-      recognition.start();
-      recognitionRef.current = recognition;
-      setIsListening(true);
+      }
     } else {
-      recognitionRef.current?.stop();
+      if (recognitionRef.current) {
+        recognitionRef.current.stop();
+      }
       setIsListening(false);
     }
   };
