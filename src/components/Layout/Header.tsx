@@ -1,215 +1,115 @@
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { Menu, X, MapPin, Users, Shield, Bell, Phone } from "lucide-react";
-import { motion } from "framer-motion";
-import { NotificationDropdown } from "@/components/Notifications/NotificationDropdown";
+import { Menu, X, Shield, LogOut, User as UserIcon } from "lucide-react";
 import { ThemeToggle } from "@/components/Theme/ThemeToggle";
 import LanguageSwitcher from "@/components/ui/LanguageSwitcher";
 import { useTranslation } from "react-i18next";
-
-// Knowledge base from chatbot for answering queries
-const FAQs = [
-  { q: /hello|hi|hey/i, a: "Hi! I'm Civic. I can help you report issues, find the map, and answer questions about this app." },
-  { q: /report|issue|complaint/i, a: "To report an issue, go to Report Issue, fill details, attach a photo, and submit. You'll get updates in your dashboard." },
-  { q: /map|explore/i, a: "Open Map Explorer to view reported issues on the map and filter by category or status." },
-  { q: /login|sign ?in/i, a: "Use Login to access your account. New users can sign up from the Signup page." },
-  { q: /privacy|data/i, a: "We respect your privacy. Read our Privacy Policy page for details on data usage and storage." },
-  { q: /contact|support|help/i, a: "You can reach the team via the Contact page. Provide a brief description and your email." },
-  { q: /categories|types|what can i report/i, a: "You can report roads, streetlights, garbage, drainage, buildings, and other civic infrastructure issues." },
-  { q: /photo|image|picture|upload/i, a: "Please upload clear images (JPEG/PNG/WebP). Avoid photos with faces for privacy. Max size is shown on the form." },
-  { q: /admin|dashboard/i, a: "Admins can track and manage all incoming reports in the Admin Dashboard." },
-];
-
-function answerFromKnowledgeBase(message: string): string {
-  for (const item of FAQs) {
-    if (item.q.test(message)) return item.a;
-  }
-  return "I'm Civic. Tell me what you need help with: reporting an issue, using the map, logging in, or privacy/contact info.";
-}
+import { getCurrentUser, logoutUser } from "@/lib/authApi";
 
 export const Header = () => {
   const { t } = useTranslation();
+  const navigate = useNavigate();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-  const [isListening, setIsListening] = useState(false);
-
-  const toggleMobileMenu = () => setIsMobileMenuOpen(!isMobileMenuOpen);
-
-  // Speech recognition setup
-  const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
-  const recognition = SpeechRecognition ? new SpeechRecognition() : null;
-
-  const startListening = () => {
-    if (!recognition) {
-      alert("Speech recognition is not supported in this browser.");
-      return;
-    }
-    recognition.lang = "en-US";
-    recognition.interimResults = false;
-    recognition.maxAlternatives = 1;
-
-    recognition.start();
-    setIsListening(true);
-
-    recognition.onresult = (event: any) => {
-      const transcript = event.results[0][0].transcript;
-      setIsListening(false);
-      const answer = answerFromKnowledgeBase(transcript);
-      alert(`You said: "${transcript}"\n\nAnswer: ${answer}`);
-
-      // Speech synthesis to read answer aloud
-      if ("speechSynthesis" in window) {
-        const utterance = new SpeechSynthesisUtterance(answer);
-        window.speechSynthesis.speak(utterance);
-      }
-    };
-
-    recognition.onerror = (event: any) => {
-      setIsListening(false);
-      alert("Error occurred in speech recognition: " + event.error);
-    };
-
-    recognition.onend = () => {
-      setIsListening(false);
-    };
-  };
+  const user = getCurrentUser();
 
   return (
-    <header className="sticky top-0 z-50 w-full border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-      <div className="container mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex h-16 items-center justify-between">
-          {/* Logo & Brand */}
-          <div className="flex items-center space-x-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-lg gradient-civic">
-              <Shield className="h-6 w-6 text-green-400" />
-            </div>
-            <div className="hidden sm:block">
-              <h1 className="text-xl font-bold text-foreground">CivicReport</h1>
-              <p className="text-xs text-muted-foreground">
-                Government Digital Platform
-              </p>
-            </div>
+    <header className="fixed top-0 z-50 w-full border-b border-border bg-background/80 backdrop-blur-md">
+      <div className="container mx-auto px-4 h-20 flex items-center justify-between">
+        {/* Brand */}
+        <div 
+          className="flex items-center space-x-3 cursor-pointer group" 
+          onClick={() => navigate("/")}
+        >
+          <div className="w-8 h-8 bg-black dark:bg-white flex items-center justify-center transition-transform group-hover:rotate-12">
+            <Shield className="h-5 w-5 text-white dark:text-black" />
           </div>
-
-          {/* Desktop Navigation */}
-          <nav className="hidden md:flex items-center space-x-8">
-            <a
-              href="/report"
-              className="text-foreground hover:text-primary transition-colors font-medium"
-            >
-              {t("navigation.report")}
-            </a>
-            <a
-              href="/map"
-              className="text-foreground hover:text-primary transition-colors font-medium"
-            >
-              {t("navigation.map")}
-            </a>
-            <a
-              href="/about"
-              className="text-foreground hover:text-primary transition-colors font-medium"
-            >
-              {t("navigation.about")}
-            </a>
-            <a
-              href="/contact"
-              className="text-foreground hover:text-primary transition-colors font-medium"
-            >
-              {t("navigation.contact")}
-            </a>
-          </nav>
-
-          {/* Actions */}
-          <div className="flex items-center space-x-4">
-            {/* Notifications */}
-            <NotificationDropdown />
-
-            {/* Theme Toggle */}
-            <ThemeToggle />
-
-            {/* Language Switcher */}
-            <LanguageSwitcher />
-
-            {/* Call Button */}
-            <Button
-              variant={isListening ? "destructive" : "outline"}
-              onClick={startListening}
-              title={isListening ? "Listening..." : "Ask Civic (voice)"}
-              aria-label="Ask Civic (voice)"
-              className="hidden sm:flex"
-            >
-              <Phone className="h-5 w-5" />
-            </Button>
-
-            {/* Login Button */}
-            <Button
-              className="hidden sm:flex btn-civic-primary"
-              onClick={() => (window.location.href = "/login")}
-            >
-              {t("common.login")}
-            </Button>
-
-            {/* Mobile Menu Button */}
-            <Button
-              variant="ghost"
-              size="sm"
-              className="md:hidden"
-              onClick={toggleMobileMenu}
-            >
-              {isMobileMenuOpen ? (
-                <X className="h-5 w-5" />
-              ) : (
-                <Menu className="h-5 w-5" />
-              )}
-            </Button>
-          </div>
+          <span className="text-sm font-black uppercase tracking-tighter">CivicReport</span>
         </div>
 
-        {/* Mobile Navigation */}
-        {isMobileMenuOpen && (
-          <motion.div
-            initial={{ opacity: 0, height: 0 }}
-            animate={{ opacity: 1, height: "auto" }}
-            exit={{ opacity: 0, height: 0 }}
-            className="md:hidden border-t border-border mt-2 pt-4 pb-4"
+        {/* Navigation */}
+        <nav className="hidden md:flex items-center space-x-12">
+          {["report", "map", "about", "contact"].map((item) => (
+            <a
+              key={item}
+              href={`/${item}`}
+              className="text-[10px] uppercase tracking-[0.2em] font-black text-muted-foreground hover:text-foreground transition-colors"
+            >
+              {t(`navigation.${item}`)}
+            </a>
+          ))}
+        </nav>
+
+        {/* System Actions */}
+        <div className="flex items-center space-x-4">
+          <div className="hidden sm:flex items-center space-x-2 border-r border-border pr-4 mr-2">
+            <LanguageSwitcher />
+            <ThemeToggle />
+          </div>
+
+          {user ? (
+            <div className="flex items-center space-x-4">
+              <Button
+                variant="ghost"
+                className="h-8 px-2 text-[10px] uppercase tracking-widest font-black"
+                onClick={() => navigate("/account")}
+              >
+                <UserIcon className="h-3 w-3 mr-2" />
+                {user.name || 'SESSION'}
+              </Button>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-8 w-8"
+                onClick={() => {
+                  logoutUser();
+                  window.location.href = "/";
+                }}
+              >
+                <LogOut className="h-3 w-3" />
+              </Button>
+            </div>
+          ) : (
+            <Button
+              className="h-10 px-6 rounded-none text-[10px] uppercase tracking-[0.2em] font-black"
+              onClick={() => navigate("/login")}
+            >
+              Initialize Access
+            </Button>
+          )}
+
+          {/* Mobile Toggle */}
+          <Button
+            variant="ghost"
+            size="icon"
+            className="md:hidden"
+            onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
           >
-            <nav className="flex flex-col space-y-3">
-              <a
-                href="/report"
-                className="text-foreground hover:text-primary transition-colors font-medium py-2"
-              >
-                {t("navigation.report")}
-              </a>
-              <a
-                href="/map"
-                className="text-foreground hover:text-primary transition-colors font-medium py-2"
-              >
-                {t("navigation.map")}
-              </a>
-              <a
-                href="/about"
-                className="text-foreground hover:text-primary transition-colors font-medium py-2"
-              >
-                {t("navigation.about")}
-              </a>
-              <a
-                href="/contact"
-                className="text-foreground hover:text-primary transition-colors font-medium py-2"
-              >
-                {t("navigation.contact")}
-              </a>
-              <div className="flex flex-col space-y-2 pt-4">
-                <Button
-                  className="btn-civic-primary w-full"
-                  onClick={() => (window.location.href = "/login")}
-                >
-                  {t("common.login")}
-                </Button>
-              </div>
-            </nav>
-          </motion.div>
-        )}
+            {isMobileMenuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
+          </Button>
+        </div>
       </div>
+
+      {/* Mobile Menu */}
+      {isMobileMenuOpen && (
+        <div className="md:hidden bg-background border-b border-border p-6 space-y-6 animate-in slide-in-from-top duration-300">
+          <nav className="flex flex-col space-y-4">
+            {["report", "map", "about", "contact"].map((item) => (
+              <a
+                key={item}
+                href={`/${item}`}
+                className="text-xs uppercase tracking-widest font-black text-muted-foreground"
+              >
+                {t(`navigation.${item}`)}
+              </a>
+            ))}
+          </nav>
+          <div className="pt-6 border-t border-border flex items-center justify-between">
+            <ThemeToggle />
+            <LanguageSwitcher />
+          </div>
+        </div>
+      )}
     </header>
   );
 };

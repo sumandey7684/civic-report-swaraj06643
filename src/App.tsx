@@ -1,15 +1,24 @@
-import WelcomeModal from "./components/WelcomeModal";
-import PrivacyPolicyModal from "./components/PrivacyPolicyModal";
-import React, { useState, useEffect } from "react";
+import React, { useEffect } from "react";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
-import { Toaster } from "@/components/ui/toaster";
-import { Toaster as Sonner } from "@/components/ui/sonner";
-import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { TooltipProvider } from "@/components/ui/tooltip";
 import { ThemeProvider } from "@/components/Theme/ThemeProvider";
 import { I18nextProvider } from "react-i18next";
+import { Toaster } from "@/components/ui/toaster";
+import { Toaster as Sonner } from "@/components/ui/sonner";
 import i18n from "./i18n";
+import { AuthProvider } from "./hooks/useAuth";
+import { ProtectedRoute } from "./components/ProtectedRoute";
 
+// Locomotive Scroll
+// import LocomotiveScroll from "locomotive-scroll";
+// import "locomotive-scroll/dist/locomotive-scroll.css";
+
+// Modals
+// import WelcomeModal from "./components/WelcomeModal";
+// import PrivacyPolicyModal from "./components/PrivacyPolicyModal";
+
+// Pages
 import Index from "./pages/Index";
 import MapExplorer from "./pages/MapExplorer";
 import ReportIssue from "./pages/ReportIssue";
@@ -22,58 +31,128 @@ import NotFound from "./pages/NotFound";
 import DashboardPage from "@/pages/Dashboard";
 import Account from "./pages/Account";
 import ResetPassword from "./pages/ResetPassword";
-import Chatbot from "@/components/Home/Chatbot";
 import AdminLogin from "./pages/AdminLogin";
 import SettingsPage from "./pages/SettingsPage";
 
+// Components
+import Chatbot from "@/components/Home/Chatbot";
+
 const queryClient = new QueryClient();
 
-const App: React.FC = () => (
-  <I18nextProvider i18n={i18n}>
-    <QueryClientProvider client={queryClient}>
-      <ThemeProvider>
-        <TooltipProvider>
-          <WelcomeModal />
-          {/* Toasts / Notifications */}
-          <Toaster />
-          <Sonner />
+const App: React.FC = () => {
+  useEffect(() => {
+    // Locomotive Scroll disabled in favor of Lenis (initialized in main.tsx)
+    /*
+    const scrollEl = document.querySelector("[data-scroll-container]") as HTMLElement | null;
+    if (!scrollEl) return;
 
-          {/* Router */}
-          <BrowserRouter>
-            <Routes>
-              {/* Public Pages */}
-              <Route path="/" element={<Index />} />
-              <Route path="/report" element={<ReportIssue />} />
-              <Route path="/map" element={<MapExplorer />} />
-              <Route path="/about" element={<About />} />
-              <Route path="/contact" element={<Contact />} />
-              <Route path="/login" element={<Login />} />
-              <Route path="/privacy-policy" element={<PrivacyPolicy />} />
+    const scroll = new LocomotiveScroll({
+      el: scrollEl,
+      smooth: true,
+      lerp: 0.08,
+      smartphone: { smooth: true },
+      tablet: { smooth: true },
+    });
 
-              {/* Admin */}
-              <Route path="/admin" element={<AdminDashboard />} />
-              <Route path="/admin-login" element={<AdminLogin />} />
+    return () => {
+      scroll.destroy();
+    };
+    */
+  }, []);
 
-              {/* Account / User */}
-              <Route path="/account" element={<Account />} />
-              <Route path="/account/settings" element={<SettingsPage />} />
-              <Route path="/settings" element={<SettingsPage />} />
+  return (
+    <I18nextProvider i18n={i18n}>
+      <QueryClientProvider client={queryClient}>
+        <ThemeProvider>
+          <AuthProvider>
+            <TooltipProvider>
+            {/* Global Modals */}
+            {/* <WelcomeModal /> */}
+            {/* <PrivacyPolicyModal /> */}
 
-              {/* Extra Pages */}
-              <Route path="/dashboard" element={<DashboardPage />} />
-              <Route path="/reset-password" element={<ResetPassword />} />
+            {/* Toasts */}
+            <Toaster />
+            <Sonner />
 
-              {/* Catch-all */}
-              <Route path="*" element={<NotFound />} />
-            </Routes>
+            {/* Locomotive Scroll Container */}
+            <div data-scroll-container>
+              <BrowserRouter>
+                <Routes>
+                  {/* Public Pages */}
+                  <Route path="/" element={<Index />} />
+                  <Route path="/about" element={<About />} />
+                  <Route path="/contact" element={<Contact />} />
+                  <Route path="/login" element={<Login />} />
+                  <Route path="/privacy-policy" element={<PrivacyPolicy />} />
 
-            {/* Global Chatbot */}
-            <Chatbot />
-          </BrowserRouter>
-        </TooltipProvider>
-      </ThemeProvider>
-    </QueryClientProvider>
-  </I18nextProvider>
-);
+                  {/* Protected Citizen Pages */}
+                  <Route 
+                    path="/report" 
+                    element={
+                      <ProtectedRoute>
+                        <ReportIssue />
+                      </ProtectedRoute>
+                    } 
+                  />
+                  <Route 
+                    path="/map" 
+                    element={
+                      <ProtectedRoute>
+                        <MapExplorer />
+                      </ProtectedRoute>
+                    } 
+                  />
+                  <Route 
+                    path="/account" 
+                    element={
+                      <ProtectedRoute>
+                        <Account />
+                      </ProtectedRoute>
+                    } 
+                  />
+                  <Route 
+                    path="/settings" 
+                    element={
+                      <ProtectedRoute>
+                        <SettingsPage />
+                      </ProtectedRoute>
+                    } 
+                  />
+                  <Route 
+                    path="/dashboard" 
+                    element={
+                      <ProtectedRoute>
+                        <DashboardPage />
+                      </ProtectedRoute>
+                    } 
+                  />
+
+                  {/* Admin Protected Pages */}
+                  <Route 
+                    path="/admin" 
+                    element={
+                      <ProtectedRoute requireAdmin>
+                        <AdminDashboard />
+                      </ProtectedRoute>
+                    } 
+                  />
+                  <Route path="/admin-login" element={<AdminLogin />} />
+                  <Route path="/reset-password" element={<ResetPassword />} />
+
+                  {/* Catch-all */}
+                  <Route path="*" element={<NotFound />} />
+                </Routes>
+
+                {/* Global Chatbot */}
+                <Chatbot />
+              </BrowserRouter>
+            </div>
+            </TooltipProvider>
+          </AuthProvider>
+        </ThemeProvider>
+      </QueryClientProvider>
+    </I18nextProvider>
+  );
+};
 
 export default App;

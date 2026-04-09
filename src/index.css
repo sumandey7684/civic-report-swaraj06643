@@ -1,294 +1,147 @@
-/* Fade-in animation for chat UI */
-.animate-fade-in {
-  animation: fadeIn 0.4s cubic-bezier(0.4,0,0.2,1);
-}
-@keyframes fadeIn {
-  from { opacity: 0; transform: scale(0.95); }
-  to { opacity: 1; transform: scale(1); }
-}
-@tailwind base;
-@tailwind components;
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
-/* Smooth theme transitions for all elements */
-*,
-*::before,
-*::after {
-  transition: background-color 0.3s cubic-bezier(0.4, 0, 0.2, 1),
-              border-color 0.3s cubic-bezier(0.4, 0, 0.2, 1),
-              color 0.3s cubic-bezier(0.4, 0, 0.2, 1),
-              box-shadow 0.3s cubic-bezier(0.4, 0, 0.2, 1),
-              backdrop-filter 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-}
-
-/* Definition of the design system. All colors, gradients, fonts, etc should be defined here. 
-All colors MUST be HSL.
-*/
-
 @layer base {
   :root {
-    /* Civic Tech Government Color Palette */
-    --background: 225 25% 97%;
-    --foreground: 0 0% 20%;
+    /* Premium Minimalist Light Mode */
+    --background: 0 0% 100%;
+    --foreground: 0 0% 0%;
 
     --card: 0 0% 100%;
-    --card-foreground: 0 0% 20%;
+    --card-foreground: 0 0% 0%;
 
     --popover: 0 0% 100%;
-    --popover-foreground: 0 0% 20%;
+    --popover-foreground: 0 0% 0%;
 
-    /* Government Blue - Primary Brand */
-    --primary: 215 85% 50%;
+    --primary: 0 0% 0%;
     --primary-foreground: 0 0% 100%;
-    --primary-soft: 215 85% 96%;
-    --primary-hover: 215 85% 45%;
 
-    /* Eco Green - Secondary Actions */
-    --secondary: 145 63% 49%;
-    --secondary-foreground: 0 0% 100%;
-    --secondary-soft: 145 63% 95%;
-    --secondary-hover: 145 63% 44%;
+    --secondary: 0 0% 96%;
+    --secondary-foreground: 0 0% 0%;
 
-    /* Neutral Grays */
-    --muted: 225 15% 95%;
+    --muted: 0 0% 96%;
     --muted-foreground: 0 0% 45%;
-    --accent: 225 15% 93%;
-    --accent-foreground: 0 0% 20%;
 
-    /* Status Colors */
-    --success: 145 63% 49%;
-    --success-foreground: 0 0% 100%;
-    --warning: 35 90% 55%;
-    --warning-foreground: 0 0% 20%;
-    --destructive: 0 75% 55%;
-    --destructive-foreground: 0 0% 100%;
+    --accent: 0 0% 92%;
+    --accent-foreground: 0 0% 0%;
 
-    /* UI Elements */
-    --border: 225 15% 88%;
-    --input: 225 15% 93%;
-    --ring: 215 85% 50%;
+    --destructive: 0 72% 51%;
+    --destructive-foreground: 0 0% 98%;
 
-    /* Framer-Inspired Design Tokens */
-    --gradient-civic: linear-gradient(135deg, hsl(var(--primary)), hsl(var(--secondary)));
-    --gradient-subtle: linear-gradient(180deg, hsl(var(--background)), hsl(var(--muted)));
-    --gradient-hero: linear-gradient(135deg, hsl(var(--primary)) 0%, hsl(var(--secondary)) 50%, hsl(var(--primary)) 100%);
-    --gradient-card: linear-gradient(145deg, hsl(var(--card)) 0%, hsl(var(--muted)) 100%);
-    --gradient-glass: linear-gradient(135deg, hsl(var(--background) / 0.8), hsl(var(--muted) / 0.6));
+    --border: 0 0% 89%;
+    --input: 0 0% 89%;
+    --ring: 0 0% 0%;
+
+    --radius: 0rem; /* Modern minimalist sharp or very slightly rounded */
     
-    /* Advanced Shadows */
-    --shadow-soft: 0 4px 20px -4px hsl(var(--primary) / 0.1);
-    --shadow-card: 0 2px 12px -2px hsl(0 0% 0% / 0.08);
-    --shadow-elevated: 0 8px 30px -6px hsl(var(--primary) / 0.15);
-    --shadow-glow: 0 0 40px hsl(var(--primary) / 0.3);
-    --shadow-inner: inset 0 2px 4px hsl(0 0% 0% / 0.06);
-    
-    /* Interactive Effects */
-    --blur-glass: blur(16px);
-    --transition-smooth: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-    --transition-bounce: all 0.6s cubic-bezier(0.68, -0.55, 0.265, 1.55);
-    --transition-elastic: all 0.8s cubic-bezier(0.68, -0.6, 0.32, 1.6);
-
-    --radius: 0.5rem;
-
-    --sidebar-background: 0 0% 98%;
-
-    --sidebar-foreground: 240 5.3% 26.1%;
-
-    --sidebar-primary: 240 5.9% 10%;
-
-    --sidebar-primary-foreground: 0 0% 98%;
-
-    --sidebar-accent: 240 4.8% 95.9%;
-
-    --sidebar-accent-foreground: 240 5.9% 10%;
-
-    --sidebar-border: 220 13% 91%;
-
-    --sidebar-ring: 217.2 91.2% 59.8%;
+    /* Shadows */
+    --shadow-premium: 0 10px 40px -10px rgba(0,0,0,0.05);
+    --shadow-active: 0 20px 50px -10px rgba(0,0,0,0.1);
   }
 
   .dark {
-    /* Dark Mode for Government Platform */
-    --background: 215 25% 8%;
-    --foreground: 225 15% 95%;
+    /* Premium Minimalist Dark Mode */
+    --background: 0 0% 0%;
+    --foreground: 0 0% 100%;
 
-    --card: 215 25% 10%;
-    --card-foreground: 225 15% 95%;
+    --card: 0 0% 3%;
+    --card-foreground: 0 0% 100%;
 
-    --popover: 215 25% 10%;
-    --popover-foreground: 225 15% 95%;
+    --popover: 0 0% 3%;
+    --popover-foreground: 0 0% 100%;
 
-    --primary: 215 85% 55%;
-    --primary-foreground: 0 0% 100%;
-    --primary-soft: 215 85% 15%;
-    --primary-hover: 215 85% 60%;
+    --primary: 0 0% 100%;
+    --primary-foreground: 0 0% 0%;
 
-    --secondary: 145 63% 54%;
+    --secondary: 0 0% 9%;
     --secondary-foreground: 0 0% 100%;
-    --secondary-soft: 145 63% 15%;
-    --secondary-hover: 145 63% 59%;
 
-    --muted: 215 25% 15%;
-    --muted-foreground: 225 15% 65%;
-    --accent: 215 25% 18%;
-    --accent-foreground: 225 15% 95%;
+    --muted: 0 0% 9%;
+    --muted-foreground: 0 0% 63%;
 
-    --success: 145 63% 54%;
-    --success-foreground: 0 0% 100%;
-    --warning: 35 90% 60%;
-    --warning-foreground: 0 0% 20%;
-    --destructive: 0 75% 60%;
+    --accent: 0 0% 12%;
+    --accent-foreground: 0 0% 100%;
+
+    --destructive: 0 62% 30%;
     --destructive-foreground: 0 0% 100%;
 
-    --border: 215 25% 20%;
-    --input: 215 25% 18%;
-    --ring: 215 85% 55%;
-
-    --gradient-civic: linear-gradient(135deg, hsl(var(--primary)), hsl(var(--secondary)));
-    --gradient-subtle: linear-gradient(180deg, hsl(var(--background)), hsl(var(--muted)));
-    --gradient-hero: linear-gradient(135deg, hsl(var(--primary)) 0%, hsl(var(--secondary)) 50%, hsl(var(--primary)) 100%);
-    --gradient-card: linear-gradient(145deg, hsl(var(--card)) 0%, hsl(var(--muted)) 100%);
-    --gradient-glass: linear-gradient(135deg, hsl(var(--background) / 0.1), hsl(var(--muted) / 0.05));
-    
-    --shadow-soft: 0 4px 20px -4px hsl(var(--primary) / 0.2);
-    --shadow-card: 0 2px 12px -2px hsl(0 0% 0% / 0.3);
-    --shadow-elevated: 0 8px 30px -6px hsl(var(--primary) / 0.25);
-    --shadow-glow: 0 0 40px hsl(var(--primary) / 0.4);
-    --shadow-inner: inset 0 2px 4px hsl(0 0% 0% / 0.2);
-    
-    --blur-glass: blur(16px);
-    --transition-smooth: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-    --transition-bounce: all 0.6s cubic-bezier(0.68, -0.55, 0.265, 1.55);
-    --transition-elastic: all 0.8s cubic-bezier(0.68, -0.6, 0.32, 1.6);
-    --sidebar-background: 240 5.9% 10%;
-    --sidebar-foreground: 240 4.8% 95.9%;
-    --sidebar-primary: 224.3 76.3% 48%;
-    --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 240 3.7% 15.9%;
-    --sidebar-accent-foreground: 240 4.8% 95.9%;
-    --sidebar-border: 240 3.7% 15.9%;
-    --sidebar-ring: 217.2 91.2% 59.8%;
+    --border: 0 0% 12%;
+    --input: 0 0% 12%;
+    --ring: 0 0% 100%;
   }
 }
 
 @layer base {
   * {
-    @apply border-border;
+    @apply border-border transition-colors duration-300;
   }
-
   body {
-    @apply bg-background text-foreground font-inter antialiased;
-    scroll-behavior: smooth;
-  }
-
-  /* Government Typography */
-  .text-civic-heading {
-    @apply text-2xl font-bold tracking-tight text-foreground;
-  }
-  
-  .text-civic-subheading {
-    @apply text-lg font-semibold text-muted-foreground;
-  }
-  
-  .text-civic-body {
-    @apply text-base text-foreground leading-relaxed;
+    @apply bg-background text-foreground font-sans antialiased selection:bg-black selection:text-white;
+    letter-spacing: -0.02em;
   }
 }
 
 @layer components {
-  /* Framer-Inspired Components */
-  .card-framer {
-    @apply bg-card border border-border/50 rounded-2xl shadow-[var(--shadow-card)] 
-           backdrop-blur-sm transition-all duration-500 
-           hover:shadow-[var(--shadow-elevated)] hover:scale-[1.02] hover:border-primary/20
-           hover:bg-gradient-to-br hover:from-card hover:to-muted/30;
+  .btn-premium {
+    @apply inline-flex items-center justify-center px-6 py-3 border border-transparent 
+           font-medium transition-all duration-300 active:scale-95;
+    border-radius: var(--radius);
   }
-  
-  .btn-framer-primary {
-    @apply bg-gradient-to-r from-primary to-primary-hover text-primary-foreground 
-           rounded-xl px-8 py-4 font-semibold transition-all duration-300 
-           shadow-[var(--shadow-soft)] hover:shadow-[var(--shadow-glow)] 
-           hover:scale-105 active:scale-95 transform-gpu
-           before:absolute before:inset-0 before:rounded-xl before:opacity-0
-           before:bg-gradient-to-r before:from-white/20 before:to-transparent
-           before:transition-opacity before:duration-300 hover:before:opacity-100
-           relative overflow-hidden;
+
+  .btn-premium-primary {
+    @apply btn-premium bg-foreground text-background hover:opacity-90;
   }
-  
-  .btn-framer-secondary {
-    @apply bg-gradient-to-r from-secondary to-secondary-hover text-secondary-foreground 
-           rounded-xl px-8 py-4 font-semibold transition-all duration-300 
-           shadow-[var(--shadow-soft)] hover:shadow-[var(--shadow-glow)] 
-           hover:scale-105 active:scale-95 transform-gpu
-           relative overflow-hidden;
+
+  .btn-premium-outline {
+    @apply btn-premium border-foreground bg-transparent text-foreground hover:bg-foreground hover:text-background;
   }
-  
-  .btn-framer-ghost {
-    @apply bg-background/50 border border-border/50 text-foreground 
-           rounded-xl px-8 py-4 font-semibold transition-all duration-300 
-           backdrop-blur-sm hover:bg-primary/10 hover:border-primary/30
-           hover:scale-105 active:scale-95 transform-gpu;
+
+  .btn-premium-ghost {
+    @apply btn-premium text-foreground hover:bg-muted font-normal;
   }
-  
-  .gradient-hero {
-    background: var(--gradient-hero);
+
+  .card-premium {
+    @apply bg-card border border-border p-8 transition-all duration-500 hover:border-foreground;
+    border-radius: var(--radius);
   }
-  
-  .gradient-card {
-    background: var(--gradient-card);
+
+  .text-title {
+    @apply font-black uppercase tracking-tighter leading-none;
   }
-  
-  .glass-effect {
-    @apply bg-background/80 backdrop-blur-[16px] border border-border/50;
+
+  .text-label {
+    @apply text-[10px] uppercase tracking-[0.3em] font-black;
   }
-  
-  .floating-card {
-    @apply card-framer hover:translate-y-[-8px] transition-all duration-500;
+
+  .grid-minimal {
+    @apply grid gap-px bg-border border border-border overflow-hidden;
   }
-  
-  .pulse-glow {
-    @apply animate-pulse shadow-[var(--shadow-glow)];
+
+  .grid-minimal-item {
+    @apply bg-background p-8 hover:bg-muted/30 transition-colors;
   }
-  
-  .status-badge {
-    @apply inline-flex items-center px-4 py-2 rounded-full text-sm font-semibold
-           backdrop-blur-sm transition-all duration-300 hover:scale-105;
-  }
-  
-  .status-submitted {
-    @apply status-badge bg-primary/20 text-primary border border-primary/30
-           shadow-[0_0_20px_hsl(var(--primary)/0.2)];
-  }
-  
-  .status-progress {
-    @apply status-badge bg-warning/20 text-warning border border-warning/30
-           shadow-[0_0_20px_hsl(var(--warning)/0.2)];
-  }
-  
-  .status-resolved {
-    @apply status-badge bg-success/20 text-success border border-success/30
-           shadow-[0_0_20px_hsl(var(--success)/0.2)];
-  }
-  
-  /* Interactive Animations */
-  .hover-lift {
-    @apply transition-all duration-300 hover:translate-y-[-4px] hover:shadow-[var(--shadow-elevated)];
-  }
-  
-  .hover-glow {
-    @apply transition-all duration-300 hover:shadow-[var(--shadow-glow)];
-  }
-  
-  .scale-on-hover {
-    @apply transition-transform duration-300 hover:scale-110;
-  }
-  
-  .ripple-effect {
-    @apply relative overflow-hidden before:absolute before:inset-0 
-           before:bg-gradient-to-r before:from-transparent before:via-white/20 before:to-transparent
-           before:translate-x-[-100%] before:transition-transform before:duration-700
-           hover:before:translate-x-[100%];
-  }
+}
+
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+  width: 2px;
+}
+::-webkit-scrollbar-track {
+  @apply bg-transparent;
+}
+::-webkit-scrollbar-thumb {
+  @apply bg-foreground;
+}
+
+/* Font Smoothing */
+html {
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+.mono-all-caps {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
 }

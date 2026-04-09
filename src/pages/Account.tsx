@@ -1,7 +1,8 @@
 import React, { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
-import { supabase } from "@/integrations/supabase/client";
+import { getCurrentUser, logoutUser } from "@/lib/authApi";
+// import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -72,37 +73,20 @@ const Account: React.FC = () => {
 
   const fetchProfileAndStats = async () => {
     try {
-      const { data: userData, error: userError } = await supabase.auth.getUser();
+      const user = getCurrentUser();
 
-      if (userError || !userData?.user) {
+      if (!user) {
         navigate("/login");
         return;
       }
 
-      const userId = userData.user.id;
+      setProfile({
+        name: user.name,
+        email: user.email,
+        role: user.role
+      });
 
-      // Fetch profile
-      const { data: profileData, error: profileError } = await supabase
-        .from("profiles")
-        .select("name, email, profile_photo, bio, role")
-        .eq("id", userId)
-        .maybeSingle();
-
-      if (profileError) throw profileError;
-
-      if (profileData) {
-        setProfile(profileData);
-      } else {
-        // If no profile, use email from auth
-        setProfile({
-          name: userData.user.email?.split('@')[0],
-          email: userData.user.email,
-          role: "citizen"
-        });
-      }
-
-      // Fetch stats (mock data for now, replace with actual queries)
-      // In a real app, you'd query the database for actual stats
+      // Fetch stats (mock data for now)
       setStats({
         reportsSubmitted: 15,
         rewardsEarned: 7,
@@ -240,7 +224,7 @@ const Account: React.FC = () => {
   };
 
   const handleLogout = async () => {
-    await supabase.auth.signOut();
+    logoutUser();
     window.location.href = "/";
   };
 

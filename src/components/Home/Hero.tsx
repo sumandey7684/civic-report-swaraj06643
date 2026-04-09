@@ -1,232 +1,78 @@
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { FloatingActionButton } from "@/components/ui/floating-action-button";
-import {
-  Camera,
-  MapPin,
-  Users,
-  Shield,
-  CheckCircle,
-  BarChart3,
-  Sparkles,
-} from "lucide-react";
 import { motion } from "framer-motion";
 import { useNavigate } from "react-router-dom";
-import { useRef, useEffect, useState } from "react";
+import { ArrowRight, Shield, Users } from "lucide-react";
+import { useAuth } from "@/hooks/useAuth";
 
 export const Hero = () => {
   const navigate = useNavigate();
-  const fileInputRef = useRef<HTMLInputElement>(null);
-  const [displayText, setDisplayText] = useState("");
-  const [currentIndex, setCurrentIndex] = useState(0);
-  const fullText = "Building Communities";
-
-  const handleReportIssue = () => {
-    fileInputRef.current?.click();
-  };
-
-  const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const files = event.target.files;
-    if (files && files.length > 0) {
-      // Handle file selection - you can add more logic here
-      console.log("Selected files:", files);
-      // For now, just show an alert
-      alert(`Selected ${files.length} file(s) for issue reporting!`);
-    }
-  };
-
-  const handleExploreMap = () => {
-    navigate("/map");
-  };
-
-  useEffect(() => {
-    if (currentIndex < fullText.length) {
-      const timeout = setTimeout(() => {
-        setDisplayText(prev => prev + fullText[currentIndex]);
-        setCurrentIndex(prev => prev + 1);
-      }, 100); // Typing speed - 100ms per character
-
-      return () => clearTimeout(timeout);
-    }
-  }, [currentIndex, fullText]);
+  const { user } = useAuth();
 
   return (
-    <>
-      <section
-        className="relative min-h-screen flex flex-col justify-center overflow-hidden bg-white text-black dark:bg-gradient-to-br dark:from-[#0a0a23] dark:to-[#1e3a8a] dark:text-white"
-        aria-label="Hero section"
-      >
-        {/* Animated Background */}
-        <div className="absolute inset-0 gradient-hero opacity-10" />
-        <div className="absolute inset-0">
-          <motion.div
-            className="absolute inset-0 bg-gradient-to-r from-primary/20 via-transparent to-secondary/20"
-            animate={{
-              backgroundPosition: ["0% 50%", "100% 50%", "0% 50%"],
-            }}
-            transition={{
-              duration: 8,
-              repeat: Infinity,
-              ease: "linear",
-            }}
-          />
-        </div>
+    <section className="relative min-h-[90vh] flex flex-col items-center justify-center text-center px-4 overflow-hidden bg-background">
+      <div className="absolute inset-0 z-0 overflow-hidden pointer-events-none">
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] bg-foreground/5 dark:bg-foreground/10 rounded-full blur-3xl opacity-50" />
+      </div>
 
-        {/* Floating Elements */}
+      <div className="container relative z-10 max-w-5xl">
         <motion.div
-          className="absolute top-20 left-10 w-20 h-20 rounded-full bg-primary/10 blur-xl"
-          animate={{
-            y: [0, -20, 0],
-            scale: [1, 1.2, 1],
-            opacity: [0.3, 0.6, 0.3],
-          }}
-          transition={{ duration: 4, repeat: Infinity }}
-          aria-hidden="true"
-        />
-
-        <div className="container mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
-          <div className="grid lg:grid-cols-2 gap-16 items-center">
-            {/* Content Section - Left */}
-            <motion.div
-              initial={{ opacity: 0, y: 60 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 1, ease: [0.25, 0.25, 0, 1] }}
-              className="text-center lg:text-left"
-            >
-              <motion.div
-                initial={{ opacity: 0, scale: 0.8 }}
-                animate={{ opacity: 1, scale: 1 }}
-                transition={{ delay: 0.3, duration: 0.6, type: "spring" }}
-              >
-                <Badge
-                  className="bg-primary/20 text-primary border-primary/30 px-6 py-3 mb-8 text-sm font-semibold
-                               backdrop-blur-sm shadow-[0_0_30px_hsl(var(--primary)/0.3)] hover:scale-105 transition-transform"
-                >
-                  <Sparkles className="mr-2 h-4 w-4" />
-                  SIH 2025 Government Innovation
-                </Badge>
-              </motion.div>
-
-              <motion.h1
-                className="text-3xl sm:text-5xl lg:text-6xl xl:text-7xl font-bold text-foreground mb-8 leading-snug"
-                initial={{ opacity: 0, y: 40 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.5, duration: 0.8 }}
-              >
-                <span>Empowering Citizens</span>
-                <br />
-                <span className="relative inline-block">
-                  <span className="gradient-hero bg-clip-text text-transparent relative z-10">
-                    {displayText}
-                    {currentIndex < fullText.length && (
-                      <motion.span
-                        animate={{ opacity: [1, 0] }}
-                        transition={{ duration: 0.5, repeat: Infinity }}
-                        className="ml-1"
-                      >
-                        |
-                      </motion.span>
-                    )}
-                  </span>
-                </span>
-              </motion.h1>
-            </motion.div>
-
-            {/* Role Selection Cards - Right Side */}
-            <motion.div
-              className="grid md:grid-cols-2 gap-8"
-              initial={{ opacity: 0, y: 40 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 1.8, duration: 0.8 }}
-            >
-              {/* Citizen Portal Card */}
-              <motion.div
-                className="glass-effect rounded-2xl p-8 border border-primary/20 hover:border-primary/40 transition-all duration-300"
-                whileHover={{ scale: 1.02, y: -5 }}
-                whileTap={{ scale: 0.98 }}
-                role="region"
-                aria-label="Citizen Portal"
-              >
-                <div className="text-center">
-                  <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-6">
-                    <Users className="w-8 h-8 text-blue-600" aria-hidden="true" />
-                  </div>
-                  <h3 className="text-2xl font-bold text-foreground mb-4">
-                    Citizen Portal
-                  </h3>
-
-                  <div className="space-y-2 text-sm text-muted-foreground mb-8 text-left">
-                    <div className="flex items-center">
-                      <CheckCircle className="w-4 h-4 text-green-500 mr-2" aria-hidden="true" />
-                      Report civic issues with photos and location
-                    </div>
-                    <div className="flex items-center">
-                      <CheckCircle className="w-4 h-4 text-green-500 mr-2" aria-hidden="true" />
-                      Track status of your reports
-                    </div>
-                  </div>
-                  <Button
-                    className="w-full bg-blue-600 hover:bg-blue-700 text-white py-4 text-lg font-semibold"
-                    onClick={() => navigate("/report")}
-                    aria-label="Continue as Citizen"
-                  >
-                    Continue as Citizen
-                  </Button>
-                </div>
-              </motion.div>
-
-              {/* Admin Dashboard Card */}
-              <motion.div
-                className="glass-effect rounded-2xl p-8 border border-green-500/20 hover:border-green-500/40 transition-all duration-300"
-                whileHover={{ scale: 1.02, y: -5 }}
-                whileTap={{ scale: 0.98 }}
-                role="region"
-                aria-label="Admin Dashboard"
-              >
-                <div className="text-center">
-                  <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-6">
-                    <Shield className="w-8 h-8 text-green-600" aria-hidden="true" />
-                  </div>
-                  <h3 className="text-2xl font-bold text-foreground mb-4">
-                    Admin Dashboard
-                  </h3>
-                  <div className="space-y-2 text-sm text-muted-foreground mb-8 text-left">
-                    <div className="flex items-center">
-                      <CheckCircle className="w-4 h-4 text-green-500 mr-2" aria-hidden="true" />
-                      View and manage all reported issues
-                    </div>
-                    <div className="flex items-center">
-                      <CheckCircle className="w-4 h-4 text-green-500 mr-2" aria-hidden="true" />
-                      Track resolution progress and analytics
-                    </div>
-                  </div>
-                  <Button
-                    className="w-full bg-green-600 hover:bg-green-700 text-white py-4 text-lg font-semibold"
-                    onClick={() => navigate("/admin")}
-                    aria-label="Continue as Admin"
-                  >
-                    Continue as Admin
-                  </Button>
-                </div>
-              </motion.div>
-            </motion.div>
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.8, ease: "easeOut" }}
+          className="space-y-8"
+        >
+          <div className="inline-flex items-center px-3 py-1 bg-muted text-[10px] uppercase tracking-[0.3em] font-black border border-border">
+            Smart India Hackathon 2025
           </div>
-        </div>
+          
+          <h1 className="text-6xl md:text-8xl lg:text-9xl font-black tracking-tighter leading-[0.9] uppercase">
+            Civic<br />Digital<br />Sync
+          </h1>
 
-        {/* Hidden file input for drag and drop functionality */}
-        <input
-          type="file"
-          ref={fileInputRef}
-          onChange={handleFileSelect}
-          multiple
-          accept="image/*,video/*"
-          className="hidden"
-          aria-hidden="true"
-          tabIndex={-1}
-        />
+          <p className="max-w-2xl mx-auto text-lg md:text-xl text-muted-foreground font-light leading-relaxed tracking-tight">
+            A monochromatic revolution in community governance. Streamlined reporting. 
+            Instant resolution. Power to the people, precisely.
+          </p>
 
-        <FloatingActionButton className="lg:hidden" />
-      </section>
-    </>
+          <div className="flex flex-col sm:flex-row items-center justify-center gap-4 pt-8">
+            <Button
+              size="lg"
+              className="w-full sm:w-auto text-xs uppercase tracking-widest font-black"
+              onClick={() => navigate(user ? "/report" : "/login")}
+            >
+              Start Reporting
+              <ArrowRight className="ml-2 h-4 w-4" />
+            </Button>
+            <Button
+              size="lg"
+              variant="outline"
+              className="w-full sm:w-auto text-xs uppercase tracking-widest font-black"
+              onClick={() => navigate("/map")}
+            >
+              Explore Map
+            </Button>
+          </div>
+        </motion.div>
+
+        <motion.div 
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 1, duration: 2 }}
+          className="grid grid-cols-2 md:grid-cols-4 gap-8 mt-24 border-t border-border pt-12"
+        >
+          {[
+            { label: "Active Nodes", value: "1.2k+" },
+            { label: "Resolved Rate", value: "98.4%" },
+            { label: "Response Time", value: "< 2h" },
+            { label: "Secured Data", value: "100%" }
+          ].map((stat, i) => (
+            <div key={i} className="text-center">
+              <div className="text-2xl font-black tracking-tighter uppercase">{stat.value}</div>
+              <div className="text-[10px] text-muted-foreground uppercase tracking-widest font-bold mt-1">{stat.label}</div>
+            </div>
+          ))}
+        </motion.div>
+      </div>
+    </section>
   );
 };

@@ -3,6 +3,7 @@ import { Header } from "@/components/Layout/Header";
 import { Footer } from "@/components/Layout/Footer";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import {
   Card,
   CardContent,
@@ -13,6 +14,7 @@ import {
 import { Eye, EyeOff, ArrowLeft } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
+import { registerUser } from "@/lib/authApi";
 
 type FormState = {
   fullName: string;
@@ -181,13 +183,25 @@ const Signup: React.FC = () => {
     if (Object.values(errs).some((v) => v)) return;
 
     setSubmitting(true);
-    // Simulate API call
-    await new Promise((res) => setTimeout(res, 1200));
-    setSuccess(true);
-    setSubmitting(false);
-    setForm(initialForm);
-    setTouched({});
-    setAadhaarMasked(false);
+    try {
+      await registerUser({
+        fullName: form.fullName,
+        email: form.email,
+        password: form.password,
+        phone: form.phone,
+        address: form.address,
+        aadhaar: form.aadhaar,
+        role: "citizen"
+      });
+      setSuccess(true);
+      setForm(initialForm);
+      setTouched({});
+      setAadhaarMasked(false);
+    } catch (err: any) {
+      setErrors({ email: err.message });
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   // Reset form
@@ -369,8 +383,7 @@ const Signup: React.FC = () => {
                       >
                         Residential Address
                       </label>
-                      <Input
-                        as="textarea"
+                      <Textarea
                         id="address"
                         name="address"
                         placeholder="Enter your address"

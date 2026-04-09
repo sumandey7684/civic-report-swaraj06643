@@ -1,5 +1,5 @@
 import { useState, useEffect, createContext, useContext, ReactNode } from 'react';
-import { supabase } from '@/integrations/supabase/client';
+import { getCurrentUser, logoutUser } from '@/lib/authApi';
 
 const AuthContext = createContext<any>(undefined);
 
@@ -16,73 +16,40 @@ interface AuthProviderProps {
 }
 
 export const AuthProvider = ({ children }: AuthProviderProps) => {
-  const [user, setUser] = useState(null);
-  const [profile, setProfile] = useState(null);
-  const [session, setSession] = useState(null);
+  const [user, setUser] = useState<any>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setSession(session);
-      setUser(session?.user ?? null);
-      if (session?.user) {
-        fetchProfile(session.user.id);
-      } else {
-        setLoading(false);
-      }
-    });
+    const checkAuth = () => {
+      const currentUser = getCurrentUser();
+      setUser(currentUser);
+      setLoading(false);
+    };
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (event, session) => {
-        setSession(session);
-        setUser(session?.user ?? null);
-        if (session?.user) {
-          await fetchProfile(session.user.id);
-        } else {
-          setProfile(null);
-          setLoading(false);
-        }
-      }
-    );
-
-    return () => subscription.unsubscribe();
+    checkAuth();
+    
+    // Listen for storage changes (for multi-tab support)
+    window.addEventListener('storage', checkAuth);
+    return () => window.removeEventListener('storage', checkAuth);
   }, []);
 
-  const fetchProfile = async (userId: string) => {
-    try {
-      const { data, error } = await supabase
-        .from('profiles')
-        .select('id, name, email, role')
-        .eq('id', userId)
-        .single();
-
-      if (error) {
-        console.error('Error fetching profile:', error);
-        setLoading(false);
-        return;
-      }
-
-      setProfile(data);
-    } catch (error) {
-      console.error('Error fetching profile:', error);
-    } finally {
-      setLoading(false);
-    }
+  const signOut = () => {
+    logoutUser();
+    setUser(null);
+    window.location.href = "/";
   };
 
-  const signOut = async () => {
-    await supabase.auth.signOut();
-  };
-
-  const isAdmin = profile?.role === 'admin';
+  const isAdmin = user?.role === 'admin';
 
   const value = {
     user,
-    profile,
-    session,
     loading,
     isAdmin,
     signOut,
+    refreshUser: () => {
+      const currentUser = getCurrentUser();
+      setUser(currentUser);
+    }
   };
 
   return (

@@ -9,6 +9,7 @@ i18n
   .use(initReactI18next) // hook for react
   .init({
     fallbackLng: "en",
+    load: "languageOnly",
     debug: true,
     backend: {
       loadPath: '/{{lng}}-translation.json'
