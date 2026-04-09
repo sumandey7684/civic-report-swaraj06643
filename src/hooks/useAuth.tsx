@@ -1,7 +1,34 @@
-import { useState, useEffect, createContext, useContext, ReactNode } from 'react';
-import { supabase } from '@/integrations/supabase/client';
+import { useState, useEffect, createContext, useContext, ReactNode, useCallback } from 'react';
+import { authApi, getToken } from '@/lib/api';
 
-const AuthContext = createContext<any>(undefined);
+interface User {
+  id: string;
+  email: string;
+  role: string;
+}
+
+interface Profile {
+  id: string;
+  name?: string;
+  email?: string;
+  phone?: string;
+  profile_photo?: string;
+  bio?: string;
+  notifications?: boolean;
+  role: string;
+}
+
+interface AuthContextType {
+  user: User | null;
+  profile: Profile | null;
+  session: string | null; // JWT token
+  loading: boolean;
+  isAdmin: boolean;
+  signOut: () => void;
+  refreshUser: () => Promise<void>;
+}
+
+const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const useAuth = () => {
   const context = useContext(AuthContext);
@@ -16,73 +43,76 @@ interface AuthProviderProps {
 }
 
 export const AuthProvider = ({ children }: AuthProviderProps) => {
-  const [user, setUser] = useState(null);
-  const [profile, setProfile] = useState(null);
-  const [session, setSession] = useState(null);
+  const [user, setUser] = useState<User | null>(null);
+  const [profile, setProfile] = useState<Profile | null>(null);
+  const [session, setSession] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setSession(session);
-      setUser(session?.user ?? null);
-      if (session?.user) {
-        fetchProfile(session.user.id);
-      } else {
-        setLoading(false);
-      }
-    });
+  const fetchCurrentUser = useCallback(async () => {
+    const token = getToken();
+    if (!token) {
+      setUser(null);
+      setProfile(null);
+      setSession(null);
+      setLoading(false);
+      return;
+    }
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (event, session) => {
-        setSession(session);
-        setUser(session?.user ?? null);
-        if (session?.user) {
-          await fetchProfile(session.user.id);
-        } else {
-          setProfile(null);
-          setLoading(false);
-        }
-      }
-    );
+    setSession(token);
 
-    return () => subscription.unsubscribe();
+    const { data, error } = await authApi.me();
+    if (error || !data) {
+      // Token is invalid or expired
+      authApi.logout();
+      setUser(null);
+      setProfile(null);
+      setSession(null);
+      setLoading(false);
+      return;
+    }
+
+    setUser(data.user);
+    setProfile(data.profile);
+    setLoading(false);
   }, []);
 
-  const fetchProfile = async (userId: string) => {
-    try {
-      const { data, error } = await supabase
-        .from('profiles')
-        .select('id, name, email, role')
-        .eq('id', userId)
-        .single();
+  useEffect(() => {
+    fetchCurrentUser();
+  }, [fetchCurrentUser]);
 
-      if (error) {
-        console.error('Error fetching profile:', error);
-        setLoading(false);
-        return;
+  // Listen for storage changes (multi-tab support)
+  useEffect(() => {
+    const handleStorageChange = (e: StorageEvent) => {
+      if (e.key === 'civic_auth_token') {
+        fetchCurrentUser();
       }
+    };
 
-      setProfile(data);
-    } catch (error) {
-      console.error('Error fetching profile:', error);
-    } finally {
-      setLoading(false);
-    }
+    window.addEventListener('storage', handleStorageChange);
+    return () => window.removeEventListener('storage', handleStorageChange);
+  }, [fetchCurrentUser]);
+
+  const signOut = () => {
+    authApi.logout();
+    setUser(null);
+    setProfile(null);
+    setSession(null);
   };
 
-  const signOut = async () => {
-    await supabase.auth.signOut();
+  const refreshUser = async () => {
+    await fetchCurrentUser();
   };
 
   const isAdmin = profile?.role === 'admin';
 
-  const value = {
+  const value: AuthContextType = {
     user,
     profile,
     session,
     loading,
     isAdmin,
     signOut,
+    refreshUser,
   };
 
   return (

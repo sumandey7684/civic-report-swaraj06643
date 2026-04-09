@@ -23,6 +23,9 @@ import {
 import { Header } from "@/components/Layout/Header";
 import { Footer } from "@/components/Layout/Footer";
 
+// @ts-expect-error Framer Motion does not provide Button type
+const MotionButton = motion(Button);
+
 const AdminDashboard = () => {
   const stats = [
     {
@@ -291,25 +294,23 @@ const AdminDashboard = () => {
                     Recent Issues
                   </CardTitle>
                   <div className="flex gap-2">
-                    <Button
+                    <MotionButton
                       variant="outline"
                       size="sm"
-                      as={motion.button}
                       whileHover={{ scale: 1.05 }}
                     >
                       <Filter className="w-4 h-4 mr-2" />
                       Filter
-                    </Button>
-                    <Button
+                    </MotionButton>
+                    <MotionButton
                       variant="outline"
                       size="sm"
                       onClick={() => setShowSearch((prev) => !prev)}
-                      as={motion.button}
                       whileHover={{ scale: 1.05 }}
                     >
                       <Search className="w-4 h-4 mr-2" />
                       Search
-                    </Button>
+                    </MotionButton>
                   </div>
                 </div>
                 <AnimatePresence>
@@ -416,14 +417,13 @@ const AdminDashboard = () => {
                 </div>
                 {visibleCount < filteredIssues.length && (
                   <div className="mt-4 text-center">
-                    <Button
+                    <MotionButton
                       variant="outline"
                       onClick={() => setVisibleCount((prev) => prev + 5)}
-                      as={motion.button}
                       whileHover={{ scale: 1.05 }}
                     >
                       View All Issues
-                    </Button>
+                    </MotionButton>
                   </div>
                 )}
               </CardContent>

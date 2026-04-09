@@ -12,7 +12,7 @@ import {
 } from "@/components/ui/card";
 import { ArrowLeft, Shield, Users, Eye, EyeOff } from "lucide-react";
 import { useNavigate } from "react-router-dom";
-import { supabase } from "@/integrations/supabase/client";
+import { authApi } from "@/lib/api";
 import { motion } from "framer-motion";
 
 // --- SIGNUP FORM TYPES & VALIDATORS ---
@@ -191,7 +191,22 @@ const Login = () => {
     setSignupErrors(errs);
     if (Object.values(errs).some((v) => v)) return;
     setSignupSubmitting(true);
-    await new Promise((res) => setTimeout(res, 1200));
+
+    const { data, error } = await authApi.signup({
+      email: signupForm.email,
+      password: signupForm.password,
+      fullName: signupForm.fullName,
+      phone: signupForm.phone.replace(/\D/g, ""),
+      address: signupForm.address,
+      aadhaar: signupForm.aadhaar,
+    });
+
+    if (error) {
+      setSignupErrors({ email: error });
+      setSignupSubmitting(false);
+      return;
+    }
+
     setSignupSuccess(true);
     setSignupSubmitting(false);
     setSignupForm(initialForm);
@@ -199,7 +214,7 @@ const Login = () => {
     setAadhaarMasked(false);
   };
 
-  // Supabase authentication function
+  // Authentication function using Neon backend
   const authenticate = async (
     email: string,
     password: string,
@@ -208,12 +223,9 @@ const Login = () => {
     if (role !== "citizen") {
       throw new Error("This Mail is not supported for Admin login.");
     }
-    const { error } = await supabase.auth.signInWithPassword({
-      email,
-      password,
-    });
+    const { data, error } = await authApi.login(email, password);
     if (error) {
-      throw new Error(error.message || "Invalid credentials");
+      throw new Error(error || "Invalid credentials");
     }
     return { success: true };
   };

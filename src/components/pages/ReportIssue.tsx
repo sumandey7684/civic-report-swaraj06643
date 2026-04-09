@@ -44,19 +44,124 @@ const ReportIssue = () => {
     latitude: "",
     priority: "medium",
     date: new Date().toISOString().slice(0, 10),
-    time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+    time: new Date().toLocaleTimeString([], {
+      hour: "2-digit",
+      minute: "2-digit",
+    }),
   });
+
+  // Speech recognition state
+  type SpeechRecognitionErrorEvent = Event & {
+    error?: string;
+    message?: string;
+  };
+
+  interface ISpeechRecognition extends EventTarget {
+    continuous: boolean;
+    interimResults: boolean;
+    lang: string;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    onresult: ((event: any) => void) | null;
+    onend: (() => void) | null;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    onerror: ((event: any) => void) | null;
+    start: () => void;
+    stop: () => void;
+  }
+  const [isListening, setIsListening] = useState(false);
+  const [speechSupported, setSpeechSupported] = useState(false);
+  const [speechError, setSpeechError] = useState("");
+  const recognitionRef = useRef<ISpeechRecognition | null>(null);
+
+  useEffect(() => {
+    // Check browser support and HTTPS
+    const isHttps = window.location.protocol === "https:";
+
+    // Strongly type the window extension to avoid 'any' casts
+    const globalWindow = window as Window & {
+      SpeechRecognition?: new () => ISpeechRecognition;
+      webkitSpeechRecognition?: new () => ISpeechRecognition;
+    };
+
+    const SpeechRecognitionCtor =
+      globalWindow.SpeechRecognition || globalWindow.webkitSpeechRecognition;
+
+    if (!isHttps) {
+      setSpeechError(
+        "Speech recognition requires HTTPS for microphone access."
+      );
+      setSpeechSupported(false);
+      return;
+    }
+    if (SpeechRecognitionCtor) {
+      setSpeechSupported(true);
+      recognitionRef.current = new SpeechRecognitionCtor();
+      recognitionRef.current.continuous = false;
+      recognitionRef.current.interimResults = true;
+      recognitionRef.current.lang = "en-US";
+      recognitionRef.current.onresult = (event: any) => {
+        let finalTranscript = "";
+        let interimTranscript = "";
+        for (let i = event.resultIndex; i < event.results.length; ++i) {
+          const transcript = event.results[i][0].transcript;
+          if (event.results[i].isFinal) {
+            finalTranscript += transcript;
+          } else {
+            interimTranscript += transcript;
+          }
+        }
+        setFormData((prev) => ({
+          ...prev,
+          description:
+            prev.description.replace(/\s*$/, "") +
+            (finalTranscript || interimTranscript),
+        }));
+      };
+      recognitionRef.current.onend = () => {
+        setIsListening(false);
+      };
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      recognitionRef.current.onerror = (event: any) => {
+        setIsListening(false);
+        setSpeechError(
+          event.error === "not-allowed"
+            ? "Microphone access denied. Please allow access to use voice input."
+            : `Speech recognition error: ${event.error}`
+        );
+      };
+    } else {
+      setSpeechError(
+        "Speech recognition is not supported in this browser. Please use Chrome or Edge on HTTPS."
+      );
+      setSpeechSupported(false);
+    }
+  }, []);
+
+  const handleMicClick = () => {
+    setSpeechError("");
+    if (!speechSupported) return;
+    if (isListening) {
+      recognitionRef.current.stop();
+      setIsListening(false);
+    } else {
+      recognitionRef.current.start();
+      setIsListening(true);
+    }
+  };
 
   // ✅ Load Google Maps script once and init map when modal opens
   // Use the provided Google Maps API key
   const apiKey = "AIzaSyDcNoYhpNi1jR5YUIetR2bWVwNnAKUChZk";
   useEffect(() => {
     if (!showMap || !mapRef.current) return;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     function initMap() {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       if (!(window as any).google?.maps || !mapRef.current) {
         console.log("Google Maps API not loaded or mapRef missing");
         return;
       }
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const map = new (window as any).google.maps.Map(mapRef.current, {
         center: { lat: 22.5726, lng: 88.3639 },
         zoom: 13,
@@ -74,16 +179,22 @@ const ReportIssue = () => {
             latitude: lat.toString(),
             longitude: lng.toString(),
             date: new Date().toISOString().slice(0, 10),
-            time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+            time: new Date().toLocaleTimeString([], {
+              hour: "2-digit",
+              minute: "2-digit",
+            }),
           }));
         });
       }
       // Add draggable marker for manual selection
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       let marker: any = null;
-      map.addListener('click', function (e: any) {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      map.addListener("click", function (e: any) {
         const lat = e.latLng.lat();
         const lng = e.latLng.lng();
         if (marker) marker.setMap(null);
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         marker = new (window as any).google.maps.Marker({
           position: { lat, lng },
           map,
@@ -95,9 +206,13 @@ const ReportIssue = () => {
           latitude: lat.toString(),
           longitude: lng.toString(),
           date: new Date().toISOString().slice(0, 10),
-          time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+          time: new Date().toLocaleTimeString([], {
+            hour: "2-digit",
+            minute: "2-digit",
+          }),
         }));
-        marker.addListener('dragend', function (event: any) {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        marker.addListener("dragend", function (event: any) {
           const newLat = event.latLng.lat();
           const newLng = event.latLng.lng();
           setFormData((prev) => ({
@@ -109,8 +224,9 @@ const ReportIssue = () => {
         });
       });
     }
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     if (!(window as any).google?.maps) {
-      const script = document.createElement('script');
+      const script = document.createElement("script");
       script.src = `https://maps.googleapis.com/maps/api/js?key=${apiKey}`;
       script.async = true;
       script.onload = initMap;
@@ -158,7 +274,7 @@ const ReportIssue = () => {
         requests: [
           {
             image: { content: base64Image },
-            features: [{ type: "TEXT_DETECTION" }],
+            features: [{ type: "LABEL_DETECTION" }],
           },
         ],
       };
@@ -170,32 +286,59 @@ const ReportIssue = () => {
           body: JSON.stringify(body),
         });
         const data = await res.json();
-        let detectedText = data.responses?.[0]?.textAnnotations?.[0]?.description;
+        let detectedText =
+          data.responses?.[0]?.labelAnnotations?.[0]?.description;
         if (typeof detectedText !== "string") detectedText = "";
 
         // Category-based validation
         let validMessage = "";
         let isValid = false;
-        if (formData.category === "roads" && /road|pothole|crack|asphalt|broken|damaged|highway|lane|street/i.test(detectedText)) {
+        if (
+          formData.category === "roads" &&
+          /road|pothole|crack|asphalt|broken|damaged|highway|lane|street/i.test(
+            detectedText
+          )
+        ) {
           validMessage = "✅ Road issue detected. You may submit this photo.";
           isValid = true;
-        } else if (formData.category === "water" && /water|leak|pipe|tap|drain|flood|overflow|wet/i.test(detectedText)) {
+        } else if (
+          formData.category === "water" &&
+          /water|leak|pipe|tap|drain|flood|overflow|wet/i.test(detectedText)
+        ) {
           validMessage = "✅ Water issue detected. You may submit this photo.";
           isValid = true;
-        } else if (formData.category === "electricity" && /electric|wire|cable|transformer|power|outage|shock/i.test(detectedText)) {
-          validMessage = "✅ Electricity issue detected. You may submit this photo.";
+        } else if (
+          formData.category === "electricity" &&
+          /electric|wire|cable|transformer|power|outage|shock/i.test(
+            detectedText
+          )
+        ) {
+          validMessage =
+            "✅ Electricity issue detected. You may submit this photo.";
           isValid = true;
-        } else if (formData.category === "waste" && /waste|garbage|trash|bin|dump|litter|plastic/i.test(detectedText)) {
+        } else if (
+          formData.category === "waste" &&
+          /waste|garbage|trash|bin|dump|litter|plastic/i.test(detectedText)
+        ) {
           validMessage = "✅ Waste issue detected. You may submit this photo.";
           isValid = true;
-        } else if (formData.category === "streetlights" && /street\s*light|lamp|pole|bulb|broken|dark/i.test(detectedText)) {
-          validMessage = "✅ Street light issue detected. You may submit this photo.";
+        } else if (
+          formData.category === "streetlights" &&
+          /street\s*light|lamp|pole|bulb|broken|dark/i.test(detectedText)
+        ) {
+          validMessage =
+            "✅ Street light issue detected. You may submit this photo.";
           isValid = true;
-        } else if (formData.category === "drainage" && /drain|sewer|gutter|blockage|overflow|clog/i.test(detectedText)) {
-          validMessage = "✅ Drainage issue detected. You may submit this photo.";
+        } else if (
+          formData.category === "drainage" &&
+          /drain|sewer|gutter|blockage|overflow|clog/i.test(detectedText)
+        ) {
+          validMessage =
+            "✅ Drainage issue detected. You may submit this photo.";
           isValid = true;
         } else {
-          validMessage = " Photo does not match the selected category. Please upload a valid photo for this issue type.";
+          validMessage =
+            " Photo does not match the selected category. Please upload a valid photo for this issue type.";
           isValid = false;
         }
         setImageError(validMessage);
@@ -215,7 +358,9 @@ const ReportIssue = () => {
     if (!imageValid) {
       toast({
         title: "❌ Invalid Photo!",
-        description: imageError || "Photo does not match the selected category. Please upload a valid photo.",
+        description:
+          imageError ||
+          "Photo does not match the selected category. Please upload a valid photo.",
         variant: "destructive",
       });
       return;
@@ -237,7 +382,10 @@ const ReportIssue = () => {
         latitude: "",
         priority: "medium",
         date: new Date().toISOString().slice(0, 10),
-        time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+        time: new Date().toLocaleTimeString([], {
+          hour: "2-digit",
+          minute: "2-digit",
+        }),
       });
       setSelectedFiles([]);
     }, 2000);
@@ -304,7 +452,9 @@ const ReportIssue = () => {
                     {/* Title + Category */}
                     <div className="grid md:grid-cols-2 gap-6">
                       <div className="space-y-2">
-                        <label className="text-sm font-medium">Issue Title</label>
+                        <label className="text-sm font-medium">
+                          Issue Title
+                        </label>
                         <Input
                           placeholder="Brief description of the issue"
                           value={formData.title}
@@ -323,18 +473,29 @@ const ReportIssue = () => {
                         <Select
                           value={formData.category}
                           onValueChange={(value) =>
-                            setFormData((prev) => ({ ...prev, category: value }))
+                            setFormData((prev) => ({
+                              ...prev,
+                              category: value,
+                            }))
                           }
                         >
                           <SelectTrigger>
                             <SelectValue placeholder="Select issue category" />
                           </SelectTrigger>
                           <SelectContent>
-                            <SelectItem value="roads">Roads & Infrastructure</SelectItem>
+                            <SelectItem value="roads">
+                              Roads & Infrastructure
+                            </SelectItem>
                             <SelectItem value="water">Water Supply</SelectItem>
-                            <SelectItem value="electricity">Electricity</SelectItem>
-                            <SelectItem value="waste">Waste Management</SelectItem>
-                            <SelectItem value="streetlights">Street Lights</SelectItem>
+                            <SelectItem value="electricity">
+                              Electricity
+                            </SelectItem>
+                            <SelectItem value="waste">
+                              Waste Management
+                            </SelectItem>
+                            <SelectItem value="streetlights">
+                              Street Lights
+                            </SelectItem>
                             <SelectItem value="drainage">Drainage</SelectItem>
                             <SelectItem value="other">Other</SelectItem>
                           </SelectContent>
@@ -344,7 +505,9 @@ const ReportIssue = () => {
 
                     {/* Location */}
                     <div className="space-y-2">
-                      <label className="text-sm font-medium">Location (Lat, Lng), Date & Time</label>
+                      <label className="text-sm font-medium">
+                        Location (Lat, Lng), Date & Time
+                      </label>
                       <div className="relative mb-2 flex gap-2">
                         <Input
                           placeholder="Enter location or coordinates"
@@ -371,7 +534,12 @@ const ReportIssue = () => {
                           variant="outline"
                           size="sm"
                           className="h-6"
-                          style={{ minWidth: 80, fontWeight: 'bold', color: '#1976d2', borderColor: '#1976d2' }}
+                          style={{
+                            minWidth: 80,
+                            fontWeight: "bold",
+                            color: "#1976d2",
+                            borderColor: "#1976d2",
+                          }}
                           onClick={() => {
                             setShowMap(true);
                           }}
@@ -381,7 +549,9 @@ const ReportIssue = () => {
                       </div>
                       <div className="flex gap-4">
                         <div className="flex-1">
-                          <label className="text-xs font-medium">Latitude</label>
+                          <label className="text-xs font-medium">
+                            Latitude
+                          </label>
                           <Input
                             type="text"
                             value={formData.latitude}
@@ -389,7 +559,9 @@ const ReportIssue = () => {
                           />
                         </div>
                         <div className="flex-1">
-                          <label className="text-xs font-medium">Longitude</label>
+                          <label className="text-xs font-medium">
+                            Longitude
+                          </label>
                           <Input
                             type="text"
                             value={formData.longitude}
@@ -398,19 +570,11 @@ const ReportIssue = () => {
                         </div>
                         <div className="flex-1">
                           <label className="text-xs font-medium">Date</label>
-                          <Input
-                            type="date"
-                            value={formData.date}
-                            readOnly
-                          />
+                          <Input type="date" value={formData.date} readOnly />
                         </div>
                         <div className="flex-1">
                           <label className="text-xs font-medium">Time</label>
-                          <Input
-                            type="text"
-                            value={formData.time}
-                            readOnly
-                          />
+                          <Input type="text" value={formData.time} readOnly />
                         </div>
                       </div>
                     </div>
@@ -425,7 +589,9 @@ const ReportIssue = () => {
                           >
                             ✕
                           </button>
-                          <h3 className="text-lg font-bold mb-2">Select Location</h3>
+                          <h3 className="text-lg font-bold mb-2">
+                            Select Location
+                          </h3>
                           <div
                             ref={mapRef}
                             id="google-map"
@@ -440,7 +606,9 @@ const ReportIssue = () => {
 
                     {/* Priority */}
                     <div className="space-y-2">
-                      <label className="text-sm font-medium">Priority Level</label>
+                      <label className="text-sm font-medium">
+                        Priority Level
+                      </label>
                       <Select
                         value={formData.priority}
                         onValueChange={(value) =>
@@ -452,7 +620,9 @@ const ReportIssue = () => {
                         </SelectTrigger>
                         <SelectContent>
                           <SelectItem value="low">Low Priority</SelectItem>
-                          <SelectItem value="medium">Medium Priority</SelectItem>
+                          <SelectItem value="medium">
+                            Medium Priority
+                          </SelectItem>
                           <SelectItem value="high">High Priority</SelectItem>
                           <SelectItem value="urgent">Urgent</SelectItem>
                         </SelectContent>
@@ -462,18 +632,70 @@ const ReportIssue = () => {
                     {/* Description */}
                     <div className="space-y-2">
                       <label className="text-sm font-medium">Description</label>
-                      <Textarea
-                        placeholder="Please provide detailed description of the issue"
-                        value={formData.description}
-                        onChange={(e) =>
-                          setFormData((prev) => ({
-                            ...prev,
-                            description: e.target.value,
-                          }))
-                        }
-                        rows={4}
-                        required
-                      />
+                      <div style={{ display: "flex", alignItems: "center" }}>
+                        <Textarea
+                          placeholder="Please provide detailed description of the issue"
+                          value={formData.description}
+                          onChange={(e) =>
+                            setFormData((prev) => ({
+                              ...prev,
+                              description: e.target.value,
+                            }))
+                          }
+                          rows={4}
+                          required
+                          style={{ flex: 1 }}
+                        />
+                        <button
+                          type="button"
+                          onClick={handleMicClick}
+                          style={{
+                            marginLeft: 8,
+                            background: isListening ? "#1976d2" : "#eee",
+                            border: "none",
+                            borderRadius: "50%",
+                            width: 40,
+                            height: 40,
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "center",
+                            cursor: speechSupported ? "pointer" : "not-allowed",
+                          }}
+                          title={
+                            speechSupported
+                              ? isListening
+                                ? "Stop Recording"
+                                : "Start Recording"
+                              : "Speech recognition not supported"
+                          }
+                        >
+                          <span
+                            role="img"
+                            aria-label="mic"
+                            style={{
+                              color: isListening ? "#fff" : "#1976d2",
+                              fontSize: 24,
+                            }}
+                          >
+                            {isListening ? "🔴" : "🎤"}
+                          </span>
+                        </button>
+                      </div>
+                      {!speechSupported && (
+                        <div style={{ color: "#f00", fontSize: 12 }}>
+                          Speech recognition not supported in this browser.
+                        </div>
+                      )}
+                      {isListening && (
+                        <div style={{ color: "#1976d2", fontSize: 12 }}>
+                          Listening... Speak now.
+                        </div>
+                      )}
+                      {speechError && (
+                        <div style={{ color: "#f00", fontSize: 12 }}>
+                          {speechError}
+                        </div>
+                      )}
                     </div>
 
                     {/* Upload Photos */}
@@ -520,7 +742,9 @@ const ReportIssue = () => {
                       </div>
 
                       {visionLoading && (
-                        <p className="text-blue-500">Checking image validity...</p>
+                        <p className="text-blue-500">
+                          Checking image validity...
+                        </p>
                       )}
                       {imageError && (
                         <p

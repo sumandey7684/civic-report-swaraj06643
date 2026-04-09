@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { useNavigate } from "react-router-dom";
-import { supabase } from "@/integrations/supabase/client";
+import { authApi } from "@/lib/api";
 
 interface FormData {
   email: string;
@@ -32,49 +32,24 @@ const AdminLogin: React.FC = () => {
         return;
       }
 
-      // 1) Verify profile exists and is admin
-      const { data: profileData, error: profileError } = await supabase
-        .from("profiles")
-        .select("role")
-        .eq("email", formData.email)
-        .maybeSingle();
+      // Login via Neon backend
+      const { data, error: loginError } = await authApi.login(formData.email, formData.password);
 
-      if (profileError) {
-        console.error("Profile fetch error:", profileError);
-        setError("Unable to verify account. Try again.");
+      if (loginError) {
+        setError(loginError || "Invalid credentials.");
         setLoading(false);
         return;
       }
 
-      if (!profileData) {
-        setError("Account not found. Please register or check the email.");
-        setLoading(false);
-        return;
-      }
-
-      // profileData may be typed as 'any' depending on your DB typings
-      const role = (profileData as any)?.role;
-      if (role !== "admin") {
+      // Check if user is admin
+      if (data?.user?.role !== "admin") {
         setError("This account is not an admin account.");
+        authApi.logout(); // Remove the token since they're not admin
         setLoading(false);
         return;
       }
 
-      // 2) Authenticate with Supabase
-      // Note: supabase.auth.signInWithPassword returns { data, error } in supabase-js v2
-      const { error: authError } = await supabase.auth.signInWithPassword({
-        email: formData.email,
-        password: formData.password,
-      } as { email: string; password: string });
-
-      if (authError) {
-        console.error("Auth error:", authError);
-        setError(authError.message || "Invalid credentials.");
-        setLoading(false);
-        return;
-      }
-
-      // 3) Successful login -> redirect to /account (immersive page)
+      // Successful login -> redirect to /account
       navigate("/account");
     } catch (err) {
       console.error("Unexpected error:", err);

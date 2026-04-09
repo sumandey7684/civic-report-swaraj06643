@@ -165,7 +165,7 @@ export const Footer = () => {
                     Civic Report
                   </h3>
                   <p className="text-sm text-primary font-medium">
-                    SIH 2025 Innovation
+                    Building Smarter Communities Together
                   </p>
                 </div>
               </div>
@@ -252,7 +252,7 @@ export const Footer = () => {
         >
           <div className="text-center lg:text-left">
             <p className="text-sm text-muted-foreground">
-              © 2025 CivicReport. Built for Smart India Hackathon 2025. All
+              © 2025 CivicReport. Built for Academic PPD lab. All
               rights reserved.
             </p>
             <p className="text-xs text-muted-foreground/70 mt-1">

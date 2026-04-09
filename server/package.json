@@ -1,20 +1,17 @@
 {
-  "name": "civic-pulse-server",
+  "name": "civic-report-server",
   "version": "1.0.0",
-  "main": "index.js",
+  "type": "module",
   "scripts": {
-    "start": "node index.js",
-    "dev": "nodemon index.js"
+    "start": "node auth-server.js",
+    "dev": "node auth-server.js"
   },
   "dependencies": {
-    "express": "^4.19.2",
+    "bcryptjs": "^3.0.2",
     "cors": "^2.8.5",
-    "dotenv": "^16.4.5",
-    "mongoose": "^8.18.1",
-    "nodemailer": "^6.9.17",
-    "twilio": "^5.9.0"
-  },
-  "devDependencies": {
-    "nodemon": "^3.1.4"
+    "dotenv": "^17.4.1",
+    "express": "^5.1.0",
+    "jsonwebtoken": "^9.0.2",
+    "pg": "^8.16.0"
   }
 }

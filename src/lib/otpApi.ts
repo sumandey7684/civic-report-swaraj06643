@@ -1,5 +1,4 @@
 // Frontend API for OTP requests and verification
-import { supabase } from "@/integrations/supabase/client";
 
 // Request OTP for email or phone
 export async function requestOtp(identifier: string, isPhone = false) {

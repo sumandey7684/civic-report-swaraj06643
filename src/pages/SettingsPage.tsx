@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { supabase } from "@/integrations/supabase/client";
+import { authApi, profilesApi } from "@/lib/api";
 import { useToast } from "@/hooks/use-toast";
 import { useForm, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -24,6 +24,7 @@ const SettingsPage: React.FC = () => {
   const [profilePhotoUrl, setProfilePhotoUrl] = useState("");
   const [profilePhoto, setProfilePhoto] = useState<File | null>(null);
   const [saving, setSaving] = useState(false);
+  const [userId, setUserId] = useState<string | null>(null);
   const { toast } = useToast();
 
   const {
@@ -41,24 +42,19 @@ const SettingsPage: React.FC = () => {
   useEffect(() => {
     const fetchProfile = async () => {
       try {
-        const { data, error: userError } = await supabase.auth.getUser();
-        if (userError) throw userError;
+        const { data, error } = await authApi.me();
+        if (error) throw new Error(error);
 
         const user = data?.user;
         if (user) {
-          const { data: profileData, error: profileError } = await supabase
-            .from("profiles")
-            .select("name, email, notifications, profile_photo, bio")
-            .eq("id", user.id)
-            .maybeSingle();
+          setUserId(user.id);
+          const profile = data?.profile;
 
-          if (profileError) throw profileError;
-
-          if (profileData) {
-            setValue("name", profileData.name || "");
-            setValue("notifications", profileData.notifications ?? true);
-            setProfilePhotoUrl(profileData.profile_photo || "");
-            setValue("bio", profileData.bio || "");
+          if (profile) {
+            setValue("name", profile.name || "");
+            setValue("notifications", profile.notifications ?? true);
+            setProfilePhotoUrl(profile.profile_photo || "");
+            setValue("bio", profile.bio || "");
           } else {
             // If no profile exists, use email from auth
             const displayName = user.email?.split('@')[0] || "";
@@ -84,43 +80,16 @@ const SettingsPage: React.FC = () => {
   const handlePhotoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
       setProfilePhoto(e.target.files[0]);
-    }
-  };
-
-  const uploadPhoto = async (file: File, userId: string) => {
-    try {
-      const fileExt = file.name.split(".").pop();
-      const fileName = `${userId}.${fileExt}`;
-
-      // Try to upload to avatars bucket
-      const { data, error } = await supabase.storage
-        .from("avatars")
-        .upload(fileName, file, { upsert: true });
-
-      if (error) {
-        // If avatars bucket doesn't exist, try a more generic approach
-        console.warn("Avatars bucket not found, skipping photo upload:", error.message);
-        return ""; // Return empty string to indicate no photo was uploaded
-      }
-
-      const { data: publicUrl } = supabase.storage
-        .from("avatars")
-        .getPublicUrl(fileName);
-      return publicUrl.publicUrl;
-    } catch (err) {
-      console.warn("Photo upload failed:", err);
-      return ""; // Return empty string on error
+      // Create a local preview URL
+      const previewUrl = URL.createObjectURL(e.target.files[0]);
+      setProfilePhotoUrl(previewUrl);
     }
   };
 
   const onSubmit = async (data: ProfileFormData) => {
     setSaving(true);
     try {
-      const { data: userData, error: userError } = await supabase.auth.getUser();
-      if (userError) throw userError;
-
-      const user = userData?.user;
-      if (!user) {
+      if (!userId) {
         toast({
           title: "Error",
           description: "No user found. Please log in again.",
@@ -130,38 +99,22 @@ const SettingsPage: React.FC = () => {
         return;
       }
 
-      let photoUrl = profilePhotoUrl;
-      if (profilePhoto) {
-        photoUrl = await uploadPhoto(profilePhoto, user.id);
-        setProfilePhotoUrl(photoUrl);
-        setProfilePhoto(null);
+      // For now, photo upload is handled as URL-only (no Supabase Storage)
+      // In a future iteration, a file upload endpoint can be added to the server
+      const { data: updatedProfile, error } = await profilesApi.update(userId, {
+        name: data.name,
+        bio: data.bio || undefined,
+        notifications: data.notifications,
+        profile_photo: profilePhotoUrl || undefined,
+      });
+
+      if (error) {
+        throw new Error(error);
       }
-
-      // Use upsert with proper conflict resolution
-      const { error: upsertError } = await supabase
-        .from("profiles")
-        .upsert({
-          id: user.id,
-          name: data.name,
-          email: user.email,
-          notifications: data.notifications,
-          bio: data.bio || null,
-          profile_photo: photoUrl || null,
-          role: "citizen"
-        });
-
-      if (upsertError) {
-        console.error("Upsert error details:", upsertError);
-        throw upsertError;
-      }
-
-      const successMessage = photoUrl
-        ? "Profile updated successfully!"
-        : "Profile updated successfully! (Photo upload skipped - storage bucket not configured)";
 
       toast({
         title: "Success",
-        description: successMessage,
+        description: "Profile updated successfully!",
       });
     } catch (err: unknown) {
       console.error(err);
@@ -176,8 +129,8 @@ const SettingsPage: React.FC = () => {
     }
   };
 
-  const handleLogout = async () => {
-    await supabase.auth.signOut();
+  const handleLogout = () => {
+    authApi.logout();
     window.location.href = "/";
   };
 

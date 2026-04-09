@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from "react";
-import { supabase } from "@/integrations/supabase/client";
+import { authApi, issuesApi, getToken } from "@/lib/api";
 import axios from "axios";
 import { GoogleMap, Marker, useJsApiLoader } from "@react-google-maps/api";
 // Removed Leaflet imports for Google Maps integration
@@ -53,19 +53,22 @@ const ReportIssue = () => {
   // Check authentication status
   useEffect(() => {
     const checkAuth = async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      setUser(user);
+      const token = getToken();
+      if (!token) {
+        setUser(null);
+        setLoading(false);
+        return;
+      }
+      const { data, error } = await authApi.me();
+      if (error || !data?.user) {
+        setUser(null);
+      } else {
+        setUser(data.user);
+      }
       setLoading(false);
     };
 
     checkAuth();
-
-    // Listen for auth changes
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-      setUser(session?.user ?? null);
-    });
-
-    return () => subscription.unsubscribe();
   }, []);
 
   // Voice Assistant Handler
@@ -104,44 +107,14 @@ const ReportIssue = () => {
 
   // Fetch leaderboard data function
   const fetchLeaderboard = async () => {
-    const { data, error } = await supabase
-      .from("issues")
-      .select("user_id")
-      .limit(10);
+    const { data, error } = await issuesApi.leaderboard();
 
     if (error) {
-      toast({ title: "Error fetching leaderboard", description: error.message });
+      toast({ title: "Error fetching leaderboard", description: error });
       return;
     }
 
-    // Group by user_id and count
-    const userCounts: { [key: string]: number } = {};
-    data?.forEach((issue: any) => {
-      if (issue.user_id) {
-        userCounts[issue.user_id] = (userCounts[issue.user_id] || 0) + 1;
-      }
-    });
-
-    // Get user profiles
-    const userIds = Object.keys(userCounts);
-    const { data: profiles, error: profileError } = await supabase
-      .from("profiles")
-      .select("id, name")
-      .in("id", userIds);
-
-    if (profileError) {
-      toast({ title: "Error fetching profiles", description: profileError.message });
-      return;
-    }
-
-    // Combine data
-    const leaderboard = profiles?.map((profile: any) => ({
-      id: profile.id,
-      name: profile.name || "Unknown",
-      count: userCounts[profile.id] || 0,
-    })).sort((a, b) => b.count - a.count) || [];
-
-    setLeaderboardData(leaderboard);
+    setLeaderboardData(data || []);
   };
 
   useEffect(() => {
@@ -154,10 +127,8 @@ const ReportIssue = () => {
   const [cameraLoading, setCameraLoading] = useState(false);
   useEffect(() => {
     const fetchIssues = async () => {
-      const { data, error } = await (supabase as any)
-        .from("issues")
-        .select("*");
-      if (!error && data) setIssues(data);
+      const { data, error } = await issuesApi.list();
+      if (!error && data) setIssues(data as any);
     };
     fetchIssues();
   }, []);
