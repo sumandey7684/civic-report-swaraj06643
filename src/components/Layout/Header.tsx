@@ -1,11 +1,13 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Menu, X, MapPin, Users, Shield, Bell, Phone } from "lucide-react";
+import { Menu, X, MapPin, Users, Shield, Bell, Phone, User } from "lucide-react";
 import { motion } from "framer-motion";
 import { NotificationDropdown } from "@/components/Notifications/NotificationDropdown";
 import { ThemeToggle } from "@/components/Theme/ThemeToggle";
 import LanguageSwitcher from "@/components/ui/LanguageSwitcher";
+import { getToken, authApi } from "@/lib/api";
 
 // Knowledge base from chatbot for answering queries
 const FAQs = [
@@ -28,8 +30,39 @@ function answerFromKnowledgeBase(message: string): string {
 }
 
 export const Header = () => {
+  const { t } = useTranslation();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isListening, setIsListening] = useState(false);
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [userName, setUserName] = useState<string | null>(null);
+
+  // Check auth state
+  useEffect(() => {
+    const checkAuth = async () => {
+      const token = getToken();
+      if (!token) {
+        setIsLoggedIn(false);
+        setUserName(null);
+        return;
+      }
+      const { data, error } = await authApi.me();
+      if (!error && data?.user) {
+        setIsLoggedIn(true);
+        setUserName(data.profile?.name || data.user.email?.split("@")[0] || "User");
+      } else {
+        setIsLoggedIn(false);
+        setUserName(null);
+      }
+    };
+    checkAuth();
+
+    // Re-check on storage changes (login/logout in other tabs)
+    const handleStorage = (e: StorageEvent) => {
+      if (e.key === "civic_auth_token") checkAuth();
+    };
+    window.addEventListener("storage", handleStorage);
+    return () => window.removeEventListener("storage", handleStorage);
+  }, []);
 
   const toggleMobileMenu = () => setIsMobileMenuOpen(!isMobileMenuOpen);
 
@@ -82,9 +115,9 @@ export const Header = () => {
               <Shield className="h-6 w-6 text-green-400" />
             </div>
             <div className="hidden sm:block">
-              <h1 className="text-xl font-bold text-foreground">CivicReport</h1>
+              <h1 className="text-xl font-bold text-foreground">{t("header.brand")}</h1>
               <p className="text-xs text-muted-foreground">
-                Government Digital Platform
+                {t("header.tagline")}
               </p>
             </div>
           </div>
@@ -95,25 +128,25 @@ export const Header = () => {
               href="/report"
               className="text-foreground hover:text-primary transition-colors font-medium"
             >
-              Report Issue
+              {t("header.reportIssue")}
             </a>
             <a
               href="/map"
               className="text-foreground hover:text-primary transition-colors font-medium"
             >
-              Map Explorer
+              {t("header.mapExplorer")}
             </a>
             <a
               href="/about"
               className="text-foreground hover:text-primary transition-colors font-medium"
             >
-              About
+              {t("header.about")}
             </a>
             <a
               href="/contact"
               className="text-foreground hover:text-primary transition-colors font-medium"
             >
-              Contact
+              {t("header.contact")}
             </a>
           </nav>
 
@@ -132,20 +165,30 @@ export const Header = () => {
             <Button
               variant={isListening ? "destructive" : "outline"}
               onClick={startListening}
-              title={isListening ? "Listening..." : "Ask Civic (voice)"}
-              aria-label="Ask Civic (voice)"
+              title={isListening ? "Listening..." : t("header.askCivic")}
+              aria-label={t("header.askCivic")}
               className="hidden sm:flex"
             >
               <Phone className="h-5 w-5" />
             </Button>
 
-            {/* Login Button */}
-            <Button
-              className="hidden sm:flex btn-civic-primary"
-              onClick={() => (window.location.href = "/login")}
-            >
-              Login
-            </Button>
+            {/* Login / Account Button */}
+            {isLoggedIn ? (
+              <Button
+                className="hidden sm:flex btn-civic-primary gap-2"
+                onClick={() => (window.location.href = "/account")}
+              >
+                <User className="h-4 w-4" />
+                {userName || t("header.myAccount")}
+              </Button>
+            ) : (
+              <Button
+                className="hidden sm:flex btn-civic-primary"
+                onClick={() => (window.location.href = "/login")}
+              >
+                {t("header.login")}
+              </Button>
+            )}
 
             {/* Mobile Menu Button */}
             <Button
@@ -176,33 +219,43 @@ export const Header = () => {
                 href="/report"
                 className="text-foreground hover:text-primary transition-colors font-medium py-2"
               >
-                Report Issue
+                {t("header.reportIssue")}
               </a>
               <a
                 href="/map"
                 className="text-foreground hover:text-primary transition-colors font-medium py-2"
               >
-                Map Explorer
+                {t("header.mapExplorer")}
               </a>
               <a
                 href="/about"
                 className="text-foreground hover:text-primary transition-colors font-medium py-2"
               >
-                About
+                {t("header.about")}
               </a>
               <a
                 href="/contact"
                 className="text-foreground hover:text-primary transition-colors font-medium py-2"
               >
-                Contact
+                {t("header.contact")}
               </a>
               <div className="flex flex-col space-y-2 pt-4">
-                <Button
-                  className="btn-civic-primary w-full"
-                  onClick={() => (window.location.href = "/login")}
-                >
-                  Login
-                </Button>
+                {isLoggedIn ? (
+                  <Button
+                    className="btn-civic-primary w-full gap-2"
+                    onClick={() => (window.location.href = "/account")}
+                  >
+                    <User className="h-4 w-4" />
+                    {userName || t("header.myAccount")}
+                  </Button>
+                ) : (
+                  <Button
+                    className="btn-civic-primary w-full"
+                    onClick={() => (window.location.href = "/login")}
+                  >
+                    {t("header.login")}
+                  </Button>
+                )}
               </div>
             </nav>
           </motion.div>

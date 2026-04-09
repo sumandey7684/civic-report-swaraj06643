@@ -212,6 +212,10 @@ const Login = () => {
     setSignupForm(initialForm);
     setSignupTouched({});
     setAadhaarMasked(false);
+    // Redirect to identity verification after signup
+    setTimeout(() => {
+      window.location.href = "/verify-identity";
+    }, 1500);
   };
 
   // Authentication function using Neon backend

@@ -4,21 +4,27 @@ import LanguageDetector from "i18next-browser-languagedetector";
 import HttpBackend from "i18next-http-backend";
 
 i18n
-  .use(HttpBackend) // load translations from public
-  .use(LanguageDetector) // detect user language (localStorage, browser, etc.)
-  .use(initReactI18next) // hook for react
+  .use(HttpBackend)
+  .use(LanguageDetector)
+  .use(initReactI18next)
   .init({
     fallbackLng: "en",
-    debug: true,
+    supportedLngs: ["en", "hi"],
+    load: "languageOnly",       // "en-US" -> "en"
+    debug: false,
     backend: {
       loadPath: '/{{lng}}-translation.json'
     },
     detection: {
       order: ['localStorage', 'navigator', 'htmlTag'],
-      caches: ['localStorage']
+      caches: ['localStorage'],
+      lookupLocalStorage: 'i18nextLng',
     },
     interpolation: {
       escapeValue: false
+    },
+    react: {
+      useSuspense: false        // prevent blank screen while loading
     }
   });
 

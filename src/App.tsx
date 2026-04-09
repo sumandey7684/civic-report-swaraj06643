@@ -23,6 +23,7 @@ import ResetPassword from "./pages/ResetPassword";
 import Chatbot from "@/components/Home/Chatbot";
 import AdminLogin from "./pages/AdminLogin";
 import SettingsPage from "./pages/SettingsPage";
+import VerifyIdentity from "./pages/VerifyIdentity";
 
 const queryClient = new QueryClient();
 
@@ -55,6 +56,7 @@ const App: React.FC = () => (
             <Route path="/account" element={<Account />} />
             <Route path="/account/settings" element={<SettingsPage />} />
             <Route path="/settings" element={<SettingsPage />} />
+            <Route path="/verify-identity" element={<VerifyIdentity />} />
 
             {/* Extra Pages */}
             <Route path="/dashboard" element={<DashboardPage />} />

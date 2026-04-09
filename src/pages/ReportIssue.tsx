@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect } from "react";
 import { authApi, issuesApi, getToken } from "@/lib/api";
+import IssueDetector from "@/components/ML/IssueDetector";
 import axios from "axios";
 import { GoogleMap, Marker, useJsApiLoader } from "@react-google-maps/api";
 // Removed Leaflet imports for Google Maps integration
@@ -873,6 +874,38 @@ const ReportIssue = () => {
                       </div>
                     )}
                   </div>
+
+                  {/* AI-Powered Issue Detection */}
+                  <IssueDetector
+                    onDetectionComplete={(results, suggestedCategory) => {
+                      // Map ML detection categories to form categories
+                      const categoryMap: Record<string, string> = {
+                        pothole: "Roads & Footpaths",
+                        roadDamage: "Roads & Footpaths",
+                        waterLeak: "Water Supply",
+                        drainage: "Drainage & Sewage",
+                        garbage: "Garbage & Waste",
+                        brokenLight: "Street Lighting",
+                      };
+                      const mapped = categoryMap[suggestedCategory];
+                      if (mapped) {
+                        setFormData((prev: any) => ({
+                          ...prev,
+                          category: mapped,
+                        }));
+                      }
+                      // Set description from detection
+                      if (results.length > 0 && results[0].confidence > 0) {
+                        const desc = results.map(r => `${r.label} (${Math.round(r.confidence * 100)}% confidence)`).join(", ");
+                        setFormData((prev: any) => ({
+                          ...prev,
+                          description: prev.description
+                            ? prev.description + "\n\nAI Detected: " + desc
+                            : "AI Detected: " + desc,
+                        }));
+                      }
+                    }}
+                  />
 
                   {/* ...existing code... */}
                   <Button

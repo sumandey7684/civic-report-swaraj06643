@@ -21,6 +21,17 @@
     "warning": "Warning",
     "info": "Information"
   },
+  "header": {
+    "brand": "CivicReport",
+    "tagline": "Government Digital Platform",
+    "reportIssue": "Report Issue",
+    "mapExplorer": "Map Explorer",
+    "about": "About",
+    "contact": "Contact",
+    "login": "Login",
+    "myAccount": "My Account",
+    "askCivic": "Ask Civic (voice)"
+  },
   "navigation": {
     "home": "Home",
     "report": "Report Issue",
@@ -57,6 +68,36 @@
     "noAccount": "Don't have an account?",
     "haveAccount": "Already have an account?",
     "resetPassword": "Reset Password"
+  },
+  "verification": {
+    "title": "Identity Verification",
+    "subtitle": "Verify your Aadhaar or PAN card for enhanced account security",
+    "uploadAadhaar": "Upload Aadhaar Card",
+    "uploadPan": "Upload PAN Card",
+    "verifying": "Verifying document...",
+    "verified": "Document Verified ✓",
+    "failed": "Verification Failed",
+    "skipForNow": "Skip for Now",
+    "continue": "Continue",
+    "dragDrop": "Drag & drop or click to upload",
+    "supportedFormats": "JPG, PNG up to 10MB",
+    "aadhaarDetected": "Aadhaar Card Detected",
+    "panDetected": "PAN Card Detected",
+    "notDetected": "Document could not be verified. Please upload a clear image.",
+    "mlAnalysis": "AI Document Analysis"
+  },
+  "detection": {
+    "title": "AI Issue Detection",
+    "analyzing": "Analyzing image...",
+    "detected": "Issues Detected",
+    "noIssues": "No civic issues detected in this image",
+    "pothole": "Pothole Detected",
+    "waterLeak": "Water Leak Detected",
+    "garbage": "Garbage/Waste Detected",
+    "brokenLight": "Broken Street Light Detected",
+    "drainage": "Drainage Issue Detected",
+    "roadDamage": "Road Damage Detected",
+    "confidence": "Confidence"
   },
   "admin": {
     "dashboard": "Admin Dashboard",
