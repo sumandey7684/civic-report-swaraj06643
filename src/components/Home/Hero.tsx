@@ -10,6 +10,7 @@ export const Hero = () => {
 
   return (
     <section className="relative min-h-[90vh] flex flex-col items-center justify-center text-center px-4 overflow-hidden bg-background">
+      {/* Abstract Background Element */}
       <div className="absolute inset-0 z-0 overflow-hidden pointer-events-none">
         <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] bg-foreground/5 dark:bg-foreground/10 rounded-full blur-3xl opacity-50" />
       </div>
@@ -37,7 +38,7 @@ export const Hero = () => {
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4 pt-8">
             <Button
               size="lg"
-              className="w-full sm:w-auto text-xs uppercase tracking-widest font-black"
+              className="w-full sm:w-auto text-xs uppercase tracking-widest font-black h-14 px-10 rounded-none"
               onClick={() => navigate(user ? "/report" : "/login")}
             >
               Start Reporting
@@ -46,7 +47,7 @@ export const Hero = () => {
             <Button
               size="lg"
               variant="outline"
-              className="w-full sm:w-auto text-xs uppercase tracking-widest font-black"
+              className="w-full sm:w-auto text-xs uppercase tracking-widest font-black h-14 px-10 rounded-none shadow-none"
               onClick={() => navigate("/map")}
             >
               Explore Map
@@ -57,7 +58,7 @@ export const Hero = () => {
         <motion.div 
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
-          transition={{ delay: 1, duration: 2 }}
+          transition={{ delay: 0.8, duration: 1 }}
           className="grid grid-cols-2 md:grid-cols-4 gap-8 mt-24 border-t border-border pt-12"
         >
           {[
