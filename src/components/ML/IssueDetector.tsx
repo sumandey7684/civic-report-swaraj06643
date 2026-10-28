@@ -4,6 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Upload, Camera, AlertTriangle, CheckCircle2, Loader2, Eye } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { visionApi } from "@/lib/api";
 
 // ============================================
 // Civic Issue categories for ML detection
@@ -61,157 +62,34 @@ const IssueDetector: React.FC<IssueDetectorProps> = ({ onDetectionComplete }) =>
   const [analysisComplete, setAnalysisComplete] = useState(false);
   const [dragOver, setDragOver] = useState(false);
 
-  // ============================================
-  // Client-side ML-like image analysis
-  // Uses Google Cloud Vision-style label detection
-  // via a lightweight canvas + pixel analysis approach
-  // ============================================
   const analyzeImage = useCallback(async (file: File) => {
     setIsAnalyzing(true);
     setResults([]);
     setAnalysisComplete(false);
 
     try {
-      // Create image element for canvas analysis
-      const img = new Image();
-      const imageUrl = URL.createObjectURL(file);
-      img.src = imageUrl;
-
-      await new Promise<void>((resolve) => {
-        img.onload = () => resolve();
+      const imageBase64 = await new Promise<string>((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(String(reader.result));
+        reader.onerror = () => reject(new Error("Could not read image"));
+        reader.readAsDataURL(file);
       });
+      const { data, error } = await visionApi.analyzeCivicIssue(imageBase64);
+      const detectedIssues: DetectionResult[] = (data?.matches || []).map((match) => ({
+        category: match.category,
+        label: t(`detection.${match.category}`),
+        confidence: match.confidence,
+        icon: CIVIC_ISSUE_LABELS[match.category]?.icon || "⚠️",
+        color: CIVIC_ISSUE_LABELS[match.category]?.color || "bg-amber-500/10 text-amber-500 border-amber-500/20",
+      }));
 
-      // Canvas-based pixel analysis for color/texture patterns
-      const canvas = document.createElement("canvas");
-      const ctx = canvas.getContext("2d")!;
-      const SIZE = 224;
-      canvas.width = SIZE;
-      canvas.height = SIZE;
-      ctx.drawImage(img, 0, 0, SIZE, SIZE);
-      const imageData = ctx.getImageData(0, 0, SIZE, SIZE);
-      const pixels = imageData.data;
-
-      // Analyze color distribution
-      let totalR = 0, totalG = 0, totalB = 0;
-      let darkPixels = 0, bluePixels = 0, brownPixels = 0, greenPixels = 0;
-      let grayPixels = 0, yellowPixels = 0;
-      const totalPixels = SIZE * SIZE;
-
-      for (let i = 0; i < pixels.length; i += 4) {
-        const r = pixels[i], g = pixels[i + 1], b = pixels[i + 2];
-        totalR += r; totalG += g; totalB += b;
-
-        const brightness = (r + g + b) / 3;
-        if (brightness < 60) darkPixels++;
-        if (b > r + 30 && b > g + 30) bluePixels++;
-        if (r > 100 && g > 60 && g < 120 && b < 80) brownPixels++;
-        if (g > r + 20 && g > b + 20) greenPixels++;
-        if (Math.abs(r - g) < 15 && Math.abs(g - b) < 15) grayPixels++;
-        if (r > 150 && g > 120 && b < 80) yellowPixels++;
-      }
-
-      const avgR = totalR / totalPixels;
-      const avgG = totalG / totalPixels;
-      const avgB = totalB / totalPixels;
-      const darkRatio = darkPixels / totalPixels;
-      const blueRatio = bluePixels / totalPixels;
-      const brownRatio = brownPixels / totalPixels;
-      const greenRatio = greenPixels / totalPixels;
-      const grayRatio = grayPixels / totalPixels;
-      const yellowRatio = yellowPixels / totalPixels;
-
-      // Texture analysis - edge detection (simplified Sobel)
-      let edgeCount = 0;
-      for (let y = 1; y < SIZE - 1; y++) {
-        for (let x = 1; x < SIZE - 1; x++) {
-          const idx = (y * SIZE + x) * 4;
-          const left = (pixels[idx - 4] + pixels[idx - 3] + pixels[idx - 2]) / 3;
-          const right = (pixels[idx + 4] + pixels[idx + 5] + pixels[idx + 6]) / 3;
-          const top = (pixels[idx - SIZE * 4] + pixels[idx - SIZE * 4 + 1] + pixels[idx - SIZE * 4 + 2]) / 3;
-          const bottom = (pixels[idx + SIZE * 4] + pixels[idx + SIZE * 4 + 1] + pixels[idx + SIZE * 4 + 2]) / 3;
-          const gradient = Math.sqrt((right - left) ** 2 + (bottom - top) ** 2);
-          if (gradient > 30) edgeCount++;
-        }
-      }
-      const edgeRatio = edgeCount / totalPixels;
-
-      // Score each category based on visual features
-      const detectedIssues: DetectionResult[] = [];
-
-      // Pothole detection: dark patches + gray asphalt + high edges
-      const potholeScore = (darkRatio * 0.35) + (grayRatio * 0.25) + (edgeRatio * 0.3) + (brownRatio * 0.1);
-      if (potholeScore > 0.15) {
+      if (error || !data?.valid || detectedIssues.length === 0) {
         detectedIssues.push({
-          category: "pothole",
-          label: t("detection.pothole"),
-          confidence: Math.min(0.95, potholeScore * 2.5),
-          icon: CIVIC_ISSUE_LABELS.pothole.icon,
-          color: CIVIC_ISSUE_LABELS.pothole.color,
-        });
-      }
-
-      // Water leak detection: blue + wet patches
-      const waterScore = (blueRatio * 0.5) + (darkRatio * 0.2) + (grayRatio * 0.15) + (edgeRatio * 0.15);
-      if (waterScore > 0.12 || blueRatio > 0.08) {
-        detectedIssues.push({
-          category: "waterLeak",
-          label: t("detection.waterLeak"),
-          confidence: Math.min(0.92, waterScore * 2.8),
-          icon: CIVIC_ISSUE_LABELS.waterLeak.icon,
-          color: CIVIC_ISSUE_LABELS.waterLeak.color,
-        });
-      }
-
-      // Garbage detection: varied colors + brownish + high edges (clutter)
-      const garbageScore = (brownRatio * 0.3) + (yellowRatio * 0.2) + (edgeRatio * 0.35) + (greenRatio * 0.15);
-      if (garbageScore > 0.18 || (edgeRatio > 0.3 && brownRatio > 0.1)) {
-        detectedIssues.push({
-          category: "garbage",
-          label: t("detection.garbage"),
-          confidence: Math.min(0.88, garbageScore * 2.2),
-          icon: CIVIC_ISSUE_LABELS.garbage.icon,
-          color: CIVIC_ISSUE_LABELS.garbage.color,
-        });
-      }
-
-      // Road damage: gray + high texture variation
-      const roadScore = (grayRatio * 0.4) + (edgeRatio * 0.35) + (darkRatio * 0.15) + (brownRatio * 0.1);
-      if (roadScore > 0.2 && grayRatio > 0.15) {
-        detectedIssues.push({
-          category: "roadDamage",
-          label: t("detection.roadDamage"),
-          confidence: Math.min(0.9, roadScore * 2.0),
-          icon: CIVIC_ISSUE_LABELS.roadDamage.icon,
-          color: CIVIC_ISSUE_LABELS.roadDamage.color,
-        });
-      }
-
-      // Drainage detection: dark + gray + some water patterns
-      const drainageScore = (darkRatio * 0.3) + (grayRatio * 0.25) + (blueRatio * 0.25) + (edgeRatio * 0.2);
-      if (drainageScore > 0.2 && (blueRatio > 0.03 || darkRatio > 0.2)) {
-        detectedIssues.push({
-          category: "drainage",
-          label: t("detection.drainage"),
-          confidence: Math.min(0.85, drainageScore * 2.3),
-          icon: CIVIC_ISSUE_LABELS.drainage.icon,
-          color: CIVIC_ISSUE_LABELS.drainage.color,
-        });
-      }
-
-      // Simulate small processing delay for UX
-      await new Promise((r) => setTimeout(r, 1500));
-
-      // Sort by confidence
-      detectedIssues.sort((a, b) => b.confidence - a.confidence);
-
-      // If nothing was detected, provide a general result
-      if (detectedIssues.length === 0) {
-        detectedIssues.push({
-          category: "other",
-          label: t("detection.noIssues"),
+          category: "invalid",
+          label: data?.reason || error || "Invalid civic issue photo",
           confidence: 0,
-          icon: "ℹ️",
-          color: "bg-gray-500/10 text-gray-500 border-gray-500/20",
+          icon: "❌",
+          color: "bg-red-500/10 text-red-500 border-red-500/20",
         });
       }
 
@@ -222,7 +100,6 @@ const IssueDetector: React.FC<IssueDetectorProps> = ({ onDetectionComplete }) =>
         onDetectionComplete(detectedIssues, detectedIssues[0].category);
       }
 
-      URL.revokeObjectURL(imageUrl);
     } catch (err) {
       console.error("ML analysis error:", err);
       setResults([{
@@ -317,14 +194,16 @@ const IssueDetector: React.FC<IssueDetectorProps> = ({ onDetectionComplete }) =>
         {analysisComplete && results.length > 0 && (
           <div className="space-y-3 animate-in slide-in-from-bottom-2">
             <h4 className="text-sm font-semibold flex items-center gap-2">
-              {results[0].confidence > 0 ? (
+              {results[0].category === "invalid" || results[0].category === "error" ? (
+                <><AlertTriangle className="h-4 w-4 text-red-500" /> Image not accepted</>
+              ) : results[0].confidence > 0 ? (
                 <><AlertTriangle className="h-4 w-4 text-amber-500" /> {t("detection.detected")}</>
               ) : (
                 <><CheckCircle2 className="h-4 w-4 text-green-500" /> {t("detection.noIssues")}</>
               )}
             </h4>
             <div className="grid gap-2">
-              {results.filter(r => r.confidence > 0).map((result, idx) => (
+              {results.map((result, idx) => (
                 <div
                   key={idx}
                   className={`flex items-center justify-between p-3 rounded-lg border ${result.color} transition-all hover:scale-[1.01]`}
@@ -334,15 +213,13 @@ const IssueDetector: React.FC<IssueDetectorProps> = ({ onDetectionComplete }) =>
                     <span className="font-medium text-sm">{result.label}</span>
                   </div>
                   <div className="flex items-center gap-2">
-                    <div className="w-20 h-2 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
+                    {result.confidence > 0 && <div className="w-20 h-2 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
                       <div
                         className="h-full bg-current rounded-full transition-all duration-1000"
                         style={{ width: `${Math.round(result.confidence * 100)}%` }}
                       />
-                    </div>
-                    <span className="text-xs font-mono font-bold">
-                      {Math.round(result.confidence * 100)}%
-                    </span>
+                    </div>}
+                    {result.confidence > 0 && <span className="text-xs font-mono font-bold">{Math.round(result.confidence * 100)}%</span>}
                   </div>
                 </div>
               ))}

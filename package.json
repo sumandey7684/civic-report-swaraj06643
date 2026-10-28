@@ -5,7 +5,10 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "start": "node server.js",
+    "start": "node server/auth-server.js",
+    "server:install": "pnpm --dir server install",
+    "server:start": "pnpm --dir server start",
+    "db:setup": "node server/run-schema.js",
     "build": "vite build",
     "preview": "vite preview",
     "lint": "eslint ."

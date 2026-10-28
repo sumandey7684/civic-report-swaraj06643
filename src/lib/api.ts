@@ -46,10 +46,20 @@ async function apiFetch<T = any>(
       headers,
     });
 
-    const json = await res.json();
+    const responseText = await res.text();
+    let json: Record<string, unknown> = {};
+    try {
+      json = responseText ? JSON.parse(responseText) : {};
+    } catch {
+      const contentType = res.headers.get("content-type") || "";
+      const serverMessage = contentType.includes("text/html")
+        ? "The API server is outdated or not running. Restart the auth server and try again."
+        : responseText.slice(0, 180);
+      return { data: null, error: serverMessage || `Request failed (${res.status})` };
+    }
 
     if (!res.ok) {
-      return { data: null, error: json.error || `Request failed (${res.status})` };
+      return { data: null, error: String(json.error || json.reason || `Request failed (${res.status})`) };
     }
 
     return { data: json, error: null };
@@ -84,10 +94,10 @@ export const authApi = {
     return result;
   },
 
-  async login(email: string, password: string) {
+  async login(email: string, password: string, role?: "citizen" | "admin") {
     const result = await apiFetch<{ user: any; profile: any; token: string }>("/api/auth/login", {
       method: "POST",
-      body: JSON.stringify({ email, password }),
+      body: JSON.stringify({ email, password, role }),
     });
 
     if (result.data?.token) {
@@ -103,6 +113,22 @@ export const authApi = {
 
   logout() {
     removeToken();
+  },
+};
+
+export const visionApi = {
+  async analyzeCivicIssue(imageBase64: string) {
+    return apiFetch<{
+      valid: boolean;
+      reason?: string;
+      category?: string;
+      matches?: { category: string; confidence: number; labels: string[] }[];
+      labels?: { label: string; score: number }[];
+      classifier?: string;
+    }>("/api/vision/civic-issue", {
+      method: "POST",
+      body: JSON.stringify({ imageBase64 }),
+    });
   },
 };
 
@@ -130,8 +156,35 @@ export const issuesApi = {
     return apiFetch<any[]>("/api/issues");
   },
 
+  async mine() {
+    return apiFetch<Array<{
+      id: string;
+      title: string;
+      description: string | null;
+      category: string;
+      location: string;
+      priority: string;
+      status: string;
+      authority_code: string;
+      authority_name: string;
+      forwarding_status: "queued" | "forwarded" | "failed";
+      forwarded_at: string | null;
+      forwarding_error: string | null;
+      created_at: string;
+      updated_at: string;
+    }>>("/api/issues/mine");
+  },
+
   async create(data: { title: string; description?: string; category: string; location: string; priority?: string }) {
-    return apiFetch<any>("/api/issues", {
+    return apiFetch<{
+      id: string;
+      title: string;
+      category: string;
+      authority_code: string;
+      authority_name: string;
+      forwarding_status: "queued" | "forwarded" | "failed";
+      forwarding_error?: string | null;
+    }>("/api/issues", {
       method: "POST",
       body: JSON.stringify(data),
     });

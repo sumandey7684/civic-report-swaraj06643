@@ -224,10 +224,7 @@ const Login = () => {
     password: string,
     role: "citizen" | "admin"
   ) => {
-    if (role !== "citizen") {
-      throw new Error("This Mail is not supported for Admin login.");
-    }
-    const { data, error } = await authApi.login(email, password);
+    const { data, error } = await authApi.login(email, password, role);
     if (error) {
       throw new Error(error || "Invalid credentials");
     }

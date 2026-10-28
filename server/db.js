@@ -1,10 +1,14 @@
+import dotenv from "dotenv";
 import pg from "pg";
+import { fileURLToPath } from "node:url";
+import { dirname, join } from "node:path";
+
+dotenv.config({ path: join(dirname(fileURLToPath(import.meta.url)), ".env"), override: true });
+
 const { Pool } = pg;
 
 const pool = new Pool({
-  connectionString:
-    process.env.DATABASE_URL ||
-    "postgresql://neondb_owner:npg_UbSm85aijtLJ@ep-plain-cell-anpq9926-pooler.c-6.us-east-1.aws.neon.tech/neondb?sslmode=require",
+  connectionString: process.env.DATABASE_URL,
   ssl: { rejectUnauthorized: false },
 });
 

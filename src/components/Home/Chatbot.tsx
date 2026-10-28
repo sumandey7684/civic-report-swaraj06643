@@ -1,6 +1,7 @@
 
 import React, { useState, useRef, useEffect } from "react";
 import { MessageSquare, Send, Sparkles } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 
 // Simple local knowledge base for "Civic" assistant
 const FAQs: Array<{ q: RegExp; a: string }> = [
@@ -22,9 +23,47 @@ function answerFromKnowledgeBase(message: string): string {
   return "I'm Civic. Tell me what you need help with: reporting an issue, using the map, logging in, or privacy/contact info.";
 }
 
+type NavigationCommand = { path: string; reply: string };
+
+function navigationCommand(message: string): NavigationCommand | null {
+  const normalized = message.toLowerCase().replace(/[?!.,]/g, "").trim();
+  const asksToOpen = /\b(open|show|take me|go to|navigate to|visit|bring me|load)\b/.test(normalized);
+
+  if (!asksToOpen) return null;
+  if (/\b(map|map explorer|explore map)\b/.test(normalized)) {
+    return { path: "/map", reply: "Opening Map Explorer for you." };
+  }
+  if (/\b(report|report issue|new complaint|complaint)\b/.test(normalized)) {
+    return { path: "/report", reply: "Opening the issue reporting page for you." };
+  }
+  if (/\b(login|log in|sign in)\b/.test(normalized)) {
+    return { path: "/login", reply: "Opening the sign-in page for you." };
+  }
+  if (/\b(sign up|signup|register|registration)\b/.test(normalized)) {
+    return { path: "/signup", reply: "Opening the registration page for you." };
+  }
+  if (/\b(account|profile)\b/.test(normalized)) {
+    return { path: "/account", reply: "Opening your account for you." };
+  }
+  if (/\b(settings|preferences)\b/.test(normalized)) {
+    return { path: "/settings", reply: "Opening settings for you." };
+  }
+  if (/\b(contact|support)\b/.test(normalized)) {
+    return { path: "/contact", reply: "Opening the contact page for you." };
+  }
+  if (/\bprivacy\b/.test(normalized)) {
+    return { path: "/privacy-policy", reply: "Opening the privacy policy for you." };
+  }
+  if (/\babout\b/.test(normalized)) {
+    return { path: "/about", reply: "Opening the about page for you." };
+  }
+  return null;
+}
+
 type ChatMessage = { sender: "user" | "bot"; text: string; time?: string };
 
 const Chatbot = () => {
+  const navigate = useNavigate();
   const [open, setOpen] = useState(false);
   const [messages, setMessages] = useState<ChatMessage[]>([
     { sender: "bot", text: "Hello! I'm Civic. How can I help you today?", time: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) }
@@ -41,9 +80,11 @@ const Chatbot = () => {
   const respondLocally = async (userMessage: string) => {
     setLoading(true);
     setTyping(true);
+    const command = navigationCommand(userMessage);
+    if (command) navigate(command.path);
     // Simulate thinking delay
     await new Promise((r) => setTimeout(r, 450));
-    const reply = answerFromKnowledgeBase(userMessage);
+    const reply = command?.reply || answerFromKnowledgeBase(userMessage);
     setMessages((msgs) => [...msgs, { sender: "bot", text: reply, time: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) }]);
     setTyping(false);
     setLoading(false);

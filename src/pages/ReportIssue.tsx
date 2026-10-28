@@ -1,9 +1,9 @@
 import React, { useState, useRef, useEffect } from "react";
-import { authApi, issuesApi, getToken } from "@/lib/api";
+import { authApi, issuesApi, getToken, visionApi } from "@/lib/api";
 import IssueDetector from "@/components/ML/IssueDetector";
 import axios from "axios";
-import { GoogleMap, Marker, useJsApiLoader } from "@react-google-maps/api";
-// Removed Leaflet imports for Google Maps integration
+import { MapContainer, Marker, TileLayer, useMapEvents } from "react-leaflet";
+import L from "leaflet";
 import { Header } from "@/components/Layout/Header";
 import { Footer } from "@/components/Layout/Footer";
 import { Button } from "@/components/ui/button";
@@ -36,6 +36,21 @@ import {
   DialogDescription,
   DialogClose,
 } from "@/components/ui/dialog";
+
+const LocationPicker = ({
+  enabled,
+  onSelect,
+}: {
+  enabled: boolean;
+  onSelect: (position: { lat: number; lng: number }) => void;
+}) => {
+  useMapEvents({
+    click: (event) => {
+      if (enabled) onSelect({ lat: event.latlng.lat, lng: event.latlng.lng });
+    },
+  });
+  return null;
+};
 
 const ReportIssue = () => {
   // Authentication state
@@ -183,6 +198,7 @@ const ReportIssue = () => {
   const { toast } = useToast();
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
   const [visionLoading, setVisionLoading] = useState(false);
+  const [invalidImage, setInvalidImage] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [formData, setFormData] = useState({
     title: "",
@@ -195,12 +211,11 @@ const ReportIssue = () => {
   const [manualMode, setManualMode] = useState(false);
   const mapRef = useRef(null);
 
-  // Google Maps API Key
-  const GOOGLE_MAPS_API_KEY = "AIzaSyDcNoYhpNi1jR5YUIetR2bWVwNnAKUChZk";
-
-  // Load Google Maps
-  const { isLoaded } = useJsApiLoader({
-    googleMapsApiKey: GOOGLE_MAPS_API_KEY,
+  const locationMarkerIcon = new L.DivIcon({
+    className: "location-marker",
+    html: '<span style="display:block;width:22px;height:22px;border-radius:50%;background:#dc2626;border:3px solid white;box-shadow:0 2px 6px #0005"></span>',
+    iconSize: [22, 22],
+    iconAnchor: [11, 11],
   });
 
   // Get user's location
@@ -238,6 +253,24 @@ const ReportIssue = () => {
     other: [],
   };
 
+  const validateCivicFile = async (file: File) => {
+    const imageBase64 = await new Promise<string>((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(String(reader.result));
+      reader.onerror = () => reject(new Error("Could not read image"));
+      reader.readAsDataURL(file);
+    });
+    const { data, error } = await visionApi.analyzeCivicIssue(imageBase64);
+    if (error || !data?.valid) {
+      setInvalidImage(true);
+      toast({ title: "❌ Invalid civic issue photo", description: data?.reason || error || "Upload a clear civic issue image." });
+      return false;
+    }
+    setInvalidImage(false);
+    toast({ title: "✅ Civic issue detected", description: `Detected: ${data.category || "civic issue"}.` });
+    return true;
+  };
+
   // File upload handler with 100MB limit and Google Vision validation
   const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(event.target.files || []);
@@ -252,21 +285,8 @@ const ReportIssue = () => {
         continue;
       }
       setVisionLoading(true);
-      // Face detection upload route
-      const formData = new FormData();
-      formData.append("photo", file);
       try {
-        const res = await fetch("http://localhost:3000/upload", {
-          method: "POST",
-          body: formData
-        });
-        const data = await res.json();
-        if (data.error) {
-          toast({ title: "❌ Invalid photo", description: data.error });
-        } else {
-          toast({ title: "✅ Suitable for upload", description: "Photo accepted, no human face detected." });
-          setSelectedFiles((prev) => [...prev, file]);
-        }
+        if (await validateCivicFile(file)) setSelectedFiles((prev) => [...prev, file]);
       } catch (err) {
         toast({ title: "Upload Error", description: "Could not validate image." });
       }
@@ -275,12 +295,12 @@ const ReportIssue = () => {
   };
 
   // Drag & Drop handler
-  const handleDrop = (e: React.DragEvent<HTMLDivElement>) => {
+  const handleDrop = async (e: React.DragEvent<HTMLDivElement>) => {
     e.preventDefault();
     const files = Array.from(e.dataTransfer.files);
     const maxSize = 100 * 1024 * 1024;
 
-    const validFiles = files.filter((file) => {
+    const sizeValidFiles = files.filter((file) => {
       if (file.size > maxSize) {
         toast({
           title: "⚠️ File too large",
@@ -291,33 +311,58 @@ const ReportIssue = () => {
       return true;
     });
 
-    setSelectedFiles((prev) => [...prev, ...validFiles]);
+    setVisionLoading(true);
+    try {
+      const validatedFiles: File[] = [];
+      for (const file of sizeValidFiles) {
+        if (file.type.startsWith("image/") && await validateCivicFile(file)) validatedFiles.push(file);
+      }
+      setSelectedFiles((prev) => [...prev, ...validatedFiles]);
+    } finally {
+      setVisionLoading(false);
+    }
   };
 
   // Submit handler
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (selectedFiles.length === 0 || invalidImage) {
+      toast({ title: "Invalid report photo", description: "Upload a valid civic issue photo before submitting." });
+      return;
+    }
     setIsSubmitting(true);
 
-    // Simulate submission
-    setTimeout(() => {
+    const { data, error } = await issuesApi.create({
+      title: formData.title.trim(),
+      description: formData.description.trim(),
+      category: formData.category,
+      location: formData.location.trim(),
+      priority: formData.priority,
+    });
+
+    if (error || !data) {
       setIsSubmitting(false);
       toast({
-        title: "✅ Issue submitted successfully!",
-        description:
-          "Your civic issue has been reported and will be reviewed by authorities.",
+        title: "Issue submission failed",
+        description: error || "The issue could not be routed. Please try again.",
+        variant: "destructive",
       });
+      return;
+    }
 
-      // Reset form
-      setFormData({
-        title: "",
-        description: "",
-        category: "",
-        location: "",
-        priority: "medium",
-      });
-      setSelectedFiles([]);
-    }, 2000);
+    setIssues((previousIssues) => [data, ...previousIssues] as any);
+    setIsSubmitting(false);
+    toast({
+      title: "✅ Issue submitted successfully!",
+      description: data.forwarding_status === "forwarded"
+        ? `Forwarded directly to ${data.authority_name}.`
+        : `Routed to ${data.authority_name} and queued for delivery.`,
+    });
+
+    setFormData({ title: "", description: "", category: "", location: "", priority: "medium" });
+    setSelectedFiles([]);
+    setInvalidImage(false);
+    setMarkerPosition(null);
   };
 
   // Show loading spinner while checking auth
@@ -538,7 +583,7 @@ const ReportIssue = () => {
                       canvas.toBlob(async (blob) => {
                         if (blob) {
                           const file = new File([blob], `photo_${Date.now()}.png`, { type: "image/png" });
-                          setSelectedFiles((prev) => [...prev, file]);
+                          if (await validateCivicFile(file)) setSelectedFiles((prev) => [...prev, file]);
                           // Auto-detect location and time
                           if (navigator.geolocation) {
                             navigator.geolocation.getCurrentPosition(
@@ -756,38 +801,20 @@ const ReportIssue = () => {
                         {manualMode ? "Manual Mode On" : "Manual Location"}
                       </Button>
                     </div>
-                    {/* Google Maps Integration */}
+                    {/* OpenStreetMap location picker */}
                     <div className="h-[300px] w-full rounded overflow-hidden border">
-                      {isLoaded && (
-                        <GoogleMap
-                          center={markerPosition || { lat: 20.5937, lng: 78.9629 }}
-                          zoom={markerPosition ? 15 : 5}
-                          mapContainerStyle={{ height: "100%", width: "100%" }}
-                          onLoad={map => { mapRef.current = map; }}
-                          onClick={manualMode ? (e => {
-                            const lat = e.latLng.lat();
-                            const lng = e.latLng.lng();
-                            setMarkerPosition({ lat, lng });
-                            setFormData((prev) => ({ ...prev, location: `${lat}, ${lng}` }));
-                          }) : undefined}
-                        >
-                          {markerPosition && (
-                            <Marker
-                              position={markerPosition}
-                              draggable={manualMode}
-                              onDragEnd={e => {
-                                const lat = e.latLng.lat();
-                                const lng = e.latLng.lng();
-                                setMarkerPosition({ lat, lng });
-                                setFormData((prev) => ({
-                                  ...prev,
-                                  location: `${lat}, ${lng}`,
-                                }));
-                              }}
-                            />
-                          )}
-                        </GoogleMap>
-                      )}
+                      <MapContainer center={markerPosition || { lat: 20.2961, lng: 85.8245 }} zoom={markerPosition ? 15 : 11} className="h-full w-full">
+                        <TileLayer attribution='&copy; OpenStreetMap contributors' url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
+                        <LocationPicker enabled={manualMode} onSelect={(position) => {
+                          setMarkerPosition(position);
+                          setFormData((prev) => ({ ...prev, location: `${position.lat}, ${position.lng}` }));
+                        }} />
+                        {markerPosition && <Marker position={markerPosition} icon={locationMarkerIcon} draggable={manualMode} eventHandlers={{ dragend: (event) => {
+                          const position = event.target.getLatLng();
+                          setMarkerPosition(position);
+                          setFormData((prev) => ({ ...prev, location: `${position.lat}, ${position.lng}` }));
+                        } }} />}
+                      </MapContainer>
                     </div>
                     <p className="text-xs text-muted-foreground mt-1">Use the location pin to auto-fill, or enable manual mode to drag/select location on the map.</p>
                   </div>

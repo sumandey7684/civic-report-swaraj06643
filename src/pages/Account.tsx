@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
-import { authApi } from "@/lib/api";
+import { authApi, issuesApi } from "@/lib/api";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -20,6 +20,20 @@ interface Stats {
   reportsSubmitted: number;
   rewardsEarned: number;
   issuesResolved: number;
+}
+
+interface SubmittedIssue {
+  id: string;
+  title: string;
+  description: string | null;
+  category: string;
+  location: string;
+  priority: string;
+  status: string;
+  authority_name: string;
+  forwarding_status: "queued" | "forwarded" | "failed";
+  forwarding_error: string | null;
+  created_at: string;
 }
 
 const initialIssues = [
@@ -60,6 +74,7 @@ const Account: React.FC = () => {
   const [stats, setStats] = useState<Stats>({ reportsSubmitted: 0, rewardsEarned: 0, issuesResolved: 0 });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [submittedIssues, setSubmittedIssues] = useState<SubmittedIssue[]>([]);
   const navigate = useNavigate();
 
   // Admin Dashboard State
@@ -90,11 +105,18 @@ const Account: React.FC = () => {
         });
       }
 
-      // Fetch stats (mock data for now, replace with actual queries)
+      const issuesResult = await issuesApi.mine();
+      if (issuesResult.error) {
+        setError(issuesResult.error);
+        return;
+      }
+
+      const userIssues = (issuesResult.data || []) as SubmittedIssue[];
+      setSubmittedIssues(userIssues);
       setStats({
-        reportsSubmitted: 15,
+        reportsSubmitted: userIssues.length,
         rewardsEarned: 7,
-        issuesResolved: 8,
+        issuesResolved: userIssues.filter((issue) => issue.status === "resolved").length,
       });
     } catch (err) {
       console.error("Error fetching profile:", err);
@@ -467,6 +489,64 @@ const Account: React.FC = () => {
           )}
 
         {/* Stats */}
+        <Card className="mb-10">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Clock className="w-5 h-5" />
+              Government Submission History
+            </CardTitle>
+            <CardDescription>
+              Your issues, the department they were routed to, and the exact submission time.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            {submittedIssues.length === 0 ? (
+              <p className="text-sm text-gray-600">You have not submitted any issues yet.</p>
+            ) : (
+              <div className="space-y-4">
+                {submittedIssues.map((issue) => {
+                  const statusLabel = issue.forwarding_status === "forwarded"
+                    ? "Forwarded to department"
+                    : issue.forwarding_status === "failed"
+                      ? "Forwarding failed"
+                      : "Queued for department";
+                  const statusClass = issue.forwarding_status === "forwarded"
+                    ? "bg-green-100 text-green-700"
+                    : issue.forwarding_status === "failed"
+                      ? "bg-red-100 text-red-700"
+                      : "bg-amber-100 text-amber-700";
+
+                  return (
+                    <div key={issue.id} className="rounded-xl border border-gray-200 p-4">
+                      <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
+                        <div>
+                          <h3 className="font-semibold text-gray-900">{issue.title}</h3>
+                          <p className="mt-1 text-sm text-gray-600">
+                            {issue.description || "No description provided."}
+                          </p>
+                        </div>
+                        <span className={`w-fit rounded-full px-3 py-1 text-xs font-medium ${statusClass}`}>
+                          {statusLabel}
+                        </span>
+                      </div>
+                      <div className="mt-4 grid gap-2 text-sm text-gray-600 md:grid-cols-2">
+                        <p><strong>Category:</strong> {issue.category}</p>
+                        <p><strong>Government department:</strong> {issue.authority_name}</p>
+                        <p><strong>Location:</strong> {issue.location}</p>
+                        <p><strong>Submitted:</strong> {new Date(issue.created_at).toLocaleString()}</p>
+                        <p><strong>Issue status:</strong> {issue.status.replace(/_/g, " ")}</p>
+                        {issue.forwarding_error && (
+                          <p className="text-red-600"><strong>Delivery note:</strong> {issue.forwarding_error}</p>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
         <div className="grid md:grid-cols-3 gap-6 mb-10">
           <Card>
             <CardContent className="pt-6">

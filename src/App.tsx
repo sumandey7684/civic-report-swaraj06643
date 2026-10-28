@@ -24,13 +24,17 @@ import Chatbot from "@/components/Home/Chatbot";
 import AdminLogin from "./pages/AdminLogin";
 import SettingsPage from "./pages/SettingsPage";
 import VerifyIdentity from "./pages/VerifyIdentity";
+import Signup from "./pages/Signup";
+import { AuthProvider } from "./hooks/useAuth";
+import { ProtectedRoute } from "./components/ProtectedRoute";
 
 const queryClient = new QueryClient();
 
 const App: React.FC = () => (
   <QueryClientProvider client={queryClient}>
-    <ThemeProvider>
-      <TooltipProvider>
+    <AuthProvider>
+      <ThemeProvider>
+        <TooltipProvider>
         <WelcomeModal />
         {/* Toasts / Notifications */}
         <Toaster />
@@ -41,25 +45,26 @@ const App: React.FC = () => (
           <Routes>
             {/* Public Pages */}
             <Route path="/" element={<Index />} />
-            <Route path="/report" element={<ReportIssue />} />
+            <Route path="/report" element={<ProtectedRoute><ReportIssue /></ProtectedRoute>} />
             <Route path="/map" element={<MapExplorer />} />
             <Route path="/about" element={<About />} />
             <Route path="/contact" element={<Contact />} />
             <Route path="/login" element={<Login />} />
+            <Route path="/signup" element={<Signup />} />
             <Route path="/privacy-policy" element={<PrivacyPolicy />} />
 
             {/* Admin */}
-            <Route path="/admin" element={<AdminDashboard />} />
+            <Route path="/admin" element={<ProtectedRoute requireAdmin><AdminDashboard /></ProtectedRoute>} />
             <Route path="/admin-login" element={<AdminLogin />} />
 
             {/* Account / User */}
-            <Route path="/account" element={<Account />} />
-            <Route path="/account/settings" element={<SettingsPage />} />
-            <Route path="/settings" element={<SettingsPage />} />
-            <Route path="/verify-identity" element={<VerifyIdentity />} />
+            <Route path="/account" element={<ProtectedRoute><Account /></ProtectedRoute>} />
+            <Route path="/account/settings" element={<ProtectedRoute><SettingsPage /></ProtectedRoute>} />
+            <Route path="/settings" element={<ProtectedRoute><SettingsPage /></ProtectedRoute>} />
+            <Route path="/verify-identity" element={<ProtectedRoute><VerifyIdentity /></ProtectedRoute>} />
 
             {/* Extra Pages */}
-            <Route path="/dashboard" element={<DashboardPage />} />
+            <Route path="/dashboard" element={<ProtectedRoute><DashboardPage /></ProtectedRoute>} />
             <Route path="/reset-password" element={<ResetPassword />} />
 
             {/* Catch-all */}
@@ -69,8 +74,9 @@ const App: React.FC = () => (
           {/* Global Chatbot */}
           <Chatbot />
         </BrowserRouter>
-      </TooltipProvider>
-    </ThemeProvider>
+        </TooltipProvider>
+      </ThemeProvider>
+    </AuthProvider>
   </QueryClientProvider>
 );
 

@@ -13,6 +13,7 @@ import {
 import { Eye, EyeOff, ArrowLeft } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
+import { authApi } from "@/lib/api";
 
 type FormState = {
   fullName: string;
@@ -181,8 +182,22 @@ const Signup: React.FC = () => {
     if (Object.values(errs).some((v) => v)) return;
 
     setSubmitting(true);
-    // Simulate API call
-    await new Promise((res) => setTimeout(res, 1200));
+    const { error } = await authApi.signup({
+      email: form.email.trim(),
+      password: form.password,
+      fullName: form.fullName.trim(),
+      phone: form.phone.replace(/\D/g, ""),
+      address: form.address.trim(),
+      aadhaar: form.aadhaar,
+      role: "citizen",
+    });
+
+    if (error) {
+      setErrors({ email: error });
+      setSubmitting(false);
+      return;
+    }
+
     setSuccess(true);
     setSubmitting(false);
     setForm(initialForm);
@@ -238,7 +253,7 @@ const Signup: React.FC = () => {
                     </div>
                     <Button
                       className="btn-framer-primary w-full"
-                      onClick={() => navigate("/login")}
+                      onClick={() => navigate("/account")}
                     >
                       Go to Login
                     </Button>

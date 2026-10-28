@@ -11,6 +11,9 @@
     "cors": "^2.8.5",
     "dotenv": "^17.4.1",
     "express": "^5.1.0",
+    "@google-cloud/vision": "^5.3.3",
+    "@google/genai": "^1.21.0",
+    "sharp": "^0.34.3",
     "jsonwebtoken": "^9.0.2",
     "pg": "^8.16.0"
   }

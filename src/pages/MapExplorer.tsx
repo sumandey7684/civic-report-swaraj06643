@@ -1,4 +1,6 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useState } from 'react';
+import { MapContainer, Marker, Popup, TileLayer } from 'react-leaflet';
+import L from 'leaflet';
 import { Header } from "@/components/Layout/Header";
 import { Footer } from "@/components/Layout/Footer";
 import { Button } from "@/components/ui/button";
@@ -9,10 +11,8 @@ import { motion } from "framer-motion";
 
 const MapExplorer = () => {
   const navigate = useNavigate();
-  const mapContainer = useRef<HTMLDivElement>(null);
-  const map = useRef<google.maps.Map | null>(null);
-  const googleMapsKey = 'AIzaSyAydJVxh0doIQOfAYMM8gZQ2DqgmZthQgM'; // Google Maps API key
-  const [isLoaded, setIsLoaded] = useState(false);
+  const [search, setSearch] = useState('');
+  const [filter, setFilter] = useState<'all' | 'high' | 'low'>('all');
 
   // Bhubaneswar coordinates and ward data
   const bhubaneswarCenter: [number, number] = [85.8245, 20.2961];
@@ -29,95 +29,18 @@ const MapExplorer = () => {
     { id: 8, name: "Ward 8 - Kalinga Nagar", issues: 9, lat: 20.2847, lng: 85.7784 }
   ];
 
-  const initializeMap = (apiKey: string) => {
-    if (!mapContainer.current) return;
+  const visibleWards = wards.filter((ward) => {
+    const matchesSearch = ward.name.toLowerCase().includes(search.toLowerCase());
+    const matchesFilter = filter === 'all' || (filter === 'high' ? ward.issues >= 12 : ward.issues < 12);
+    return matchesSearch && matchesFilter;
+  });
 
-    // Load Google Maps API
-    const script = document.createElement('script');
-    script.src = `https://maps.googleapis.com/maps/api/js?key=${apiKey}&callback=initMap`;
-    script.async = true;
-    script.defer = true;
-
-    // Create global callback function
-    (window as any).initMap = () => {
-      setIsLoaded(true);
-      
-      const mapOptions: google.maps.MapOptions = {
-        center: { lat: bhubaneswarCenter[1], lng: bhubaneswarCenter[0] },
-        zoom: 11,
-        mapTypeId: google.maps.MapTypeId.ROADMAP,
-        styles: [
-          {
-            featureType: "all",
-            elementType: "geometry.fill",
-            stylers: [{ color: "#f5f5f5" }]
-          },
-          {
-            featureType: "water",
-            elementType: "geometry",
-            stylers: [{ color: "#e9f3ff" }]
-          }
-        ]
-      };
-
-      map.current = new google.maps.Map(mapContainer.current!, mapOptions);
-
-      // Add ward markers
-      wards.forEach((ward) => {
-        const marker = new google.maps.Marker({
-          position: { lat: ward.lat, lng: ward.lng },
-          map: map.current!,
-          title: ward.name,
-          icon: {
-            path: google.maps.SymbolPath.CIRCLE,
-            scale: 15,
-            fillColor: '#1A73E8',
-            fillOpacity: 1,
-            strokeColor: '#ffffff',
-            strokeWeight: 3
-          }
-        });
-
-        const infoWindow = new google.maps.InfoWindow({
-          content: `
-            <div style="padding: 10px; min-width: 200px;">
-              <h3 style="font-weight: bold; font-size: 16px; margin-bottom: 8px;">${ward.name}</h3>
-              <p style="font-size: 14px; color: #666; margin-bottom: 8px;">
-                Active Issues: <span style="font-weight: 600; color: #dc2626;">${ward.issues}</span>
-              </p>
-              <div style="display: flex; gap: 8px; margin-top: 12px;">
-                <button style="padding: 4px 12px; background: #1A73E8; color: white; border: none; border-radius: 4px; font-size: 12px; cursor: pointer;">
-                  View Issues
-                </button>
-                <button style="padding: 4px 12px; background: #2ECC71; color: white; border: none; border-radius: 4px; font-size: 12px; cursor: pointer;">
-                  Report Issue
-                </button>
-              </div>
-            </div>
-          `
-        });
-
-        marker.addListener('click', () => {
-          infoWindow.open(map.current!, marker);
-        });
-      });
-    };
-
-    document.head.appendChild(script);
-  };
-
-  useEffect(() => {
-    // Auto-initialize map on component mount
-    initializeMap(googleMapsKey);
-    
-    return () => {
-      // Clean up Google Maps instance
-      if (map.current) {
-        // Google Maps doesn't have a remove method like Mapbox
-        map.current = null;
-      }
-    };
-  }, []);
+  const wardIcon = new L.DivIcon({
+    className: 'ward-marker',
+    html: '<span style="display:block;width:24px;height:24px;border-radius:50%;background:#1a73e8;border:3px solid white;box-shadow:0 2px 6px #0005"></span>',
+    iconSize: [24, 24],
+    iconAnchor: [12, 12],
+  });
 
   return (
     <div className="min-h-screen bg-background">
@@ -176,27 +99,32 @@ const MapExplorer = () => {
                     <Input
                       placeholder="Search by ward name or area..."
                       className="pl-10"
+                      value={search}
+                      onChange={(event) => setSearch(event.target.value)}
                     />
                   </div>
                   <div className="flex gap-2">
-                    <Button variant="outline" size="sm">All Wards</Button>
-                    <Button variant="outline" size="sm">High Issues</Button>
-                    <Button variant="outline" size="sm">Low Issues</Button>
+                    <Button variant={filter === 'all' ? 'default' : 'outline'} size="sm" onClick={() => setFilter('all')}>All Wards</Button>
+                    <Button variant={filter === 'high' ? 'default' : 'outline'} size="sm" onClick={() => setFilter('high')}>High Issues</Button>
+                    <Button variant={filter === 'low' ? 'default' : 'outline'} size="sm" onClick={() => setFilter('low')}>Low Issues</Button>
                   </div>
                 </div>
               </div>
 
-              {/* Interactive Map with 100px border */}
-              <div className="border-[100px] border-background/20 rounded-[200px] overflow-hidden shadow-2xl">
-                <div 
-                  ref={mapContainer} 
-                  className="w-full h-[600px] rounded-[100px] overflow-hidden shadow-lg"
-                />
+              <div className="rounded-2xl overflow-hidden border shadow-2xl">
+                <MapContainer center={[20.2961, 85.8245]} zoom={11} className="w-full h-[600px]">
+                  <TileLayer attribution='&copy; OpenStreetMap contributors' url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
+                  {visibleWards.map((ward) => (
+                    <Marker key={ward.id} position={[ward.lat, ward.lng]} icon={wardIcon}>
+                      <Popup><strong>{ward.name}</strong><br />Active Issues: {ward.issues}</Popup>
+                    </Marker>
+                  ))}
+                </MapContainer>
               </div>
 
               {/* Ward Summary */}
               <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
-                {wards.map((ward, index) => (
+                {visibleWards.map((ward, index) => (
                   <motion.div
                     key={ward.id}
                     initial={{ opacity: 0, y: 40 }}

@@ -48,9 +48,20 @@ CREATE TABLE IF NOT EXISTS issues (
   location TEXT NOT NULL,
   priority TEXT DEFAULT 'medium' CHECK (priority IN ('low', 'medium', 'high', 'urgent')),
   status TEXT DEFAULT 'pending' CHECK (status IN ('pending', 'in_progress', 'resolved', 'rejected')),
+  authority_code TEXT NOT NULL DEFAULT 'municipal-grievance',
+  authority_name TEXT NOT NULL DEFAULT 'Municipal Civic Grievance Cell',
+  forwarding_status TEXT NOT NULL DEFAULT 'queued' CHECK (forwarding_status IN ('queued', 'forwarded', 'failed')),
+  forwarded_at TIMESTAMP WITH TIME ZONE,
+  forwarding_error TEXT,
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW() NOT NULL,
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW() NOT NULL
 );
+
+ALTER TABLE issues ADD COLUMN IF NOT EXISTS authority_code TEXT NOT NULL DEFAULT 'municipal-grievance';
+ALTER TABLE issues ADD COLUMN IF NOT EXISTS authority_name TEXT NOT NULL DEFAULT 'Municipal Civic Grievance Cell';
+ALTER TABLE issues ADD COLUMN IF NOT EXISTS forwarding_status TEXT NOT NULL DEFAULT 'queued';
+ALTER TABLE issues ADD COLUMN IF NOT EXISTS forwarded_at TIMESTAMP WITH TIME ZONE;
+ALTER TABLE issues ADD COLUMN IF NOT EXISTS forwarding_error TEXT;
 
 -- ============================================
 -- USER ISSUE REWARDS TABLE
@@ -89,21 +100,25 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
+DROP TRIGGER IF EXISTS users_updated_at ON users;
 CREATE TRIGGER users_updated_at
   BEFORE UPDATE ON users
   FOR EACH ROW
   EXECUTE FUNCTION handle_updated_at();
 
+DROP TRIGGER IF EXISTS profiles_updated_at ON profiles;
 CREATE TRIGGER profiles_updated_at
   BEFORE UPDATE ON profiles
   FOR EACH ROW
   EXECUTE FUNCTION handle_updated_at();
 
+DROP TRIGGER IF EXISTS issues_updated_at ON issues;
 CREATE TRIGGER issues_updated_at
   BEFORE UPDATE ON issues
   FOR EACH ROW
   EXECUTE FUNCTION handle_updated_at();
 
+DROP TRIGGER IF EXISTS user_issue_rewards_updated_at ON user_issue_rewards;
 CREATE TRIGGER user_issue_rewards_updated_at
   BEFORE UPDATE ON user_issue_rewards
   FOR EACH ROW
