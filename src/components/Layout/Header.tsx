@@ -66,10 +66,6 @@ export const Header = () => {
 
   const toggleMobileMenu = () => setIsMobileMenuOpen(!isMobileMenuOpen);
 
-  // Speech recognition setup
-  const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
-  const recognition = SpeechRecognition ? new SpeechRecognition() : null;
-
   const startListening = () => {
     const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
     
@@ -109,7 +105,9 @@ export const Header = () => {
         
         let message = "Error occurred in speech recognition: " + event.error;
         if (event.error === 'network') {
-          message = "Network error. The speech service is unreachable. Please check your internet connection and try again.";
+          message = window.navigator.userAgent.includes("Electron/")
+            ? "Speech recognition is unavailable in the VS Code embedded browser. Open this site in Google Chrome or Microsoft Edge to use voice input."
+            : "The browser speech service is unreachable. Check your internet connection and try again in Google Chrome or Microsoft Edge.";
         } else if (event.error === 'not-allowed') {
           message = "Microphone access denied. Please allow microphone permissions in your browser.";
         } else if (event.error === 'no-speech') {

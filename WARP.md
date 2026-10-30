@@ -22,7 +22,7 @@ Civic Pulse is a web application for SIH 2025 promoting clean and green technolo
 The application requires environment variables:
 - Frontend: Create `.env` with `VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY`
 - Backend: Create `server/.env` with database and API credentials
-- Backend also requires `server/key.json` for Google Cloud Vision API
+- Backend requires `server/key.json` for Google Cloud Vision image analysis. Without it, image analysis returns an error, but the API server and authentication remain available.
 
 ## Architecture
 

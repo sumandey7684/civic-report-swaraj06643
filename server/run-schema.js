@@ -1,23 +1,12 @@
 // Run the Neon schema SQL against the database
-import dotenv from "dotenv";
 import { readFileSync } from "fs";
 import { fileURLToPath } from "url";
 import { dirname, join } from "path";
-import pg from "pg";
-
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = dirname(__filename);
-
-dotenv.config({ path: join(__dirname, ".env"), override: true });
-
-const pool = new pg.Pool({
-  connectionString: process.env.DATABASE_URL,
-  ssl: { rejectUnauthorized: false },
-});
+import pool from "./db.js";
 
 async function runSchema() {
   try {
-    const sql = readFileSync(join(__dirname, "..", "neon_schema.sql"), "utf8");
+    const sql = readFileSync(join(dirname(fileURLToPath(import.meta.url)), "..", "neon_schema.sql"), "utf8");
     await pool.query(sql);
     console.log("✅ Schema created successfully!");
     
@@ -30,6 +19,7 @@ async function runSchema() {
     console.log("📋 Tables:", tables.rows.map(r => r.table_name).join(", "));
   } catch (err) {
     console.error("❌ Schema error:", err.message);
+    process.exitCode = 1;
   } finally {
     await pool.end();
   }

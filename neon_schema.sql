@@ -36,6 +36,12 @@ CREATE TABLE IF NOT EXISTS profiles (
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW() NOT NULL
 );
 
+ALTER TABLE profiles ADD COLUMN IF NOT EXISTS phone TEXT;
+ALTER TABLE profiles ADD COLUMN IF NOT EXISTS address TEXT;
+ALTER TABLE profiles ADD COLUMN IF NOT EXISTS aadhaar_hash TEXT;
+ALTER TABLE profiles ADD COLUMN IF NOT EXISTS notifications BOOLEAN DEFAULT true NOT NULL;
+ALTER TABLE profiles ADD COLUMN IF NOT EXISTS updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW() NOT NULL;
+
 -- ============================================
 -- ISSUES TABLE
 -- ============================================

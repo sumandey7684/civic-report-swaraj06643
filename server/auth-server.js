@@ -6,6 +6,7 @@ import jwt from "jsonwebtoken";
 import vision from "@google-cloud/vision";
 import { GoogleGenAI } from "@google/genai";
 import sharp from "sharp";
+import { existsSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
 import pool from "./db.js";
@@ -17,10 +18,13 @@ const PORT = process.env.AUTH_PORT || 4000;
 const JWT_SECRET = process.env.JWT_SECRET || "civic-report-jwt-secret-key-2026";
 const JWT_EXPIRES_IN = "7d";
 const serviceAccountPath = join(dirname(fileURLToPath(import.meta.url)), "key.json");
-process.env.GOOGLE_APPLICATION_CREDENTIALS = serviceAccountPath;
-const visionClient = new vision.ImageAnnotatorClient({
-  keyFilename: serviceAccountPath,
-});
+const hasVisionCredentials = existsSync(serviceAccountPath);
+if (hasVisionCredentials) {
+  process.env.GOOGLE_APPLICATION_CREDENTIALS = serviceAccountPath;
+}
+const visionClient = hasVisionCredentials
+  ? new vision.ImageAnnotatorClient({ keyFilename: serviceAccountPath })
+  : null;
 const civicVisionModel = new GoogleGenAI({
   vertexai: true,
   project: process.env.GOOGLE_CLOUD_PROJECT || "shaped-terrain-471918-d8",
@@ -155,6 +159,10 @@ async function analyzeCivicImage(imageBase64) {
     if (localPothole) return localPothole;
   } catch (error) {
     console.error("Local pothole fallback unavailable:", error.message);
+  }
+
+  if (!visionClient) {
+    throw new Error("Google Cloud Vision credentials are not configured");
   }
 
   const [result] = await visionClient.annotateImage({

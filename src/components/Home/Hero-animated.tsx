@@ -89,7 +89,7 @@ export const Hero = () => {
                                backdrop-blur-sm shadow-[0_0_30px_hsl(var(--primary)/0.3)] hover:scale-105 transition-transform"
                 >
                   <Sparkles className="mr-2 h-4 w-4" />
-                  SIH 2025 Government Innovation
+                  ppd lab 2026
                 </Badge>
               </motion.div>
 
